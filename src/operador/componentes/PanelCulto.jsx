@@ -34,6 +34,35 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
     setSobre(null);
   };
 
+  if (!actual) {
+    const recientes = servicios.slice(0, 4);
+    return (
+      <div className="culto">
+        <div className="inicio-culto">
+          <span className="rotulo">Sin culto abierto</span>
+          <h3>¿Qué vas a proyectar hoy?</h3>
+          <p className="tenue">Abre un culto guardado o crea uno nuevo. También puedes buscar y proyectar pasajes y canciones sin abrir ningún culto.</p>
+          <button className="btn btn-lleno ancho" onClick={acciones.nuevoServicio}><Icono n="mas" t={17} /> Nuevo culto</button>
+          <button className="btn ancho" onClick={acciones.historial}><Icono n="culto" t={17} /> Historial de cultos</button>
+          {recientes.length > 0 && (
+            <>
+              <span className="rotulo recientes-tit">Recientes</span>
+              <div className="recientes">
+                {recientes.map((s) => (
+                  <button key={s.id} className="reciente" onClick={() => acciones.abrir(s.id)}>
+                    <small>{etiquetaFecha(s.fecha)}</small>
+                    <b>{s.nombre}</b>
+                    <span>{s.cantidad} {s.cantidad === 1 ? 'elemento' : 'elementos'}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="culto">
       <div className="culto-cab">
@@ -45,6 +74,7 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
           <Icono n="chevron" t={18} />
         </button>
         <div className="culto-botones">
+          <button className="icono-btn" title="Cerrar este culto y volver al inicio" onClick={acciones.cerrarCulto}><Icono n="cerrar" /></button>
           <button className="icono-btn" title="Nuevo culto" onClick={acciones.nuevoServicio}><Icono n="mas" /></button>
           <button className="icono-btn" title="Nombre y fecha" onClick={acciones.editarServicio}><Icono n="editar" /></button>
           <button className="icono-btn" title="Duplicar culto" onClick={acciones.duplicarServicio}><Icono n="duplicar" /></button>

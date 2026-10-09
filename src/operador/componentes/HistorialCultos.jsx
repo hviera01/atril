@@ -1,39 +1,88 @@
 import { useMemo, useState } from 'react';
 import { Modal } from './Modal';
 import Icono from './Iconos';
-import { diaMes, diaSemanaCorto, mesAnio } from '../../compartido/fechas';
+import { PRESETS_FECHA, diaMes, diaSemanaCorto, mesAnio, rangoPreset } from '../../compartido/fechas';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export default function HistorialCultos({ servicios, servicioId, alAbrir, alUsarComoBase, alBorrar, alNuevo, alCerrar }) {
   const [filtro, setFiltro] = useState('');
+  const [desde, setDesde] = useState('');
+  const [hasta, setHasta] = useState('');
+  const [preset, setPreset] = useState('todos');
   const [confirmando, setConfirmando] = useState(null);
 
-  const grupos = useMemo(() => {
+  const elegirPreset = (id) => {
+    const [d, h] = rangoPreset(id);
+    setPreset(id);
+    setDesde(d);
+    setHasta(h);
+  };
+
+  const cambiarFecha = (campo, valor) => {
+    setPreset('');
+    if (campo === 'desde') setDesde(valor); else setHasta(valor);
+  };
+
+  const filtrados = useMemo(() => {
     const f = norm(filtro.trim());
+    return servicios.filter((s) => {
+      if (desde && s.fecha < desde) return false;
+      if (hasta && s.fecha > hasta) return false;
+      if (f && !norm(s.nombre).includes(f) && !norm(mesAnio(s.fecha)).includes(f)) return false;
+      return true;
+    });
+  }, [servicios, filtro, desde, hasta]);
+
+  const grupos = useMemo(() => {
     const mapa = new Map();
-    for (const s of servicios) {
-      if (f && !norm(s.nombre).includes(f) && !norm(mesAnio(s.fecha)).includes(f)) continue;
+    for (const s of filtrados) {
       const clave = mesAnio(s.fecha);
       if (!mapa.has(clave)) mapa.set(clave, []);
       mapa.get(clave).push(s);
     }
     return [...mapa.entries()];
-  }, [servicios, filtro]);
+  }, [filtrados]);
+
+  const hayFiltro = !!(desde || hasta || filtro);
+  const limpiar = () => { setFiltro(''); elegirPreset('todos'); };
 
   return (
     <Modal
       titulo="Historial de cultos"
-      ancho={680}
+      ancho={720}
       alCerrar={alCerrar}
-      pie={(<><span className="tenue">{servicios.length} {servicios.length === 1 ? 'culto guardado' : 'cultos guardados'}</span><span className="relleno" /><button className="btn btn-lleno" onClick={alNuevo}><Icono n="mas" t={16} /> Nuevo culto</button></>)}
+      pie={(
+        <>
+          <span className="tenue">{hayFiltro ? `${filtrados.length} de ${servicios.length}` : servicios.length} {servicios.length === 1 ? 'culto guardado' : 'cultos guardados'}</span>
+          <span className="relleno" />
+          <button className="btn btn-lleno" onClick={alNuevo}><Icono n="mas" t={16} /> Nuevo culto</button>
+        </>
+      )}
     >
       <div className="filtro">
         <Icono n="busqueda" t={16} />
         <input autoFocus value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Buscar por nombre o mes (octubre, domingo…)" />
       </div>
+      <div className="filtros-fecha">
+        <label className="campo">
+          <span className="campo-et">Desde</span>
+          <input type="date" value={desde} max={hasta || undefined} onChange={(e) => cambiarFecha('desde', e.target.value)} />
+        </label>
+        <label className="campo">
+          <span className="campo-et">Hasta</span>
+          <input type="date" value={hasta} min={desde || undefined} onChange={(e) => cambiarFecha('hasta', e.target.value)} />
+        </label>
+        <div className="presets">
+          {PRESETS_FECHA.map((p) => (
+            <button key={p.id} className={preset === p.id ? 'on' : ''} onClick={() => elegirPreset(p.id)}>{p.t}</button>
+          ))}
+          {hayFiltro && <button className="limpiar" onClick={limpiar}>Quitar filtros</button>}
+        </div>
+      </div>
       <div className="historial">
-        {grupos.length === 0 && <p className="tenue">No hay cultos que coincidan.</p>}
+        {servicios.length === 0 && <p className="tenue">Todavía no hay cultos guardados. Crea el primero con «Nuevo culto».</p>}
+        {servicios.length > 0 && grupos.length === 0 && <p className="tenue">Ningún culto coincide con esas fechas.</p>}
         {grupos.map(([mes, lista]) => (
           <section key={mes}>
             <h3 className="seccion-tit">{mes}</h3>

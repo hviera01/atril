@@ -55,6 +55,7 @@ export default function App() {
   const [versionDatos, setVersionDatos] = useState(0);
   const [listo, setListo] = useState(false);
   const [destinoId, setDestinoId] = useState(null);
+  const [nuevoPendiente, setNuevoPendiente] = useState(null);
   const buscador = useRef(null);
   const acc = useRef({});
   const ultimoUso = useRef(null);
@@ -77,7 +78,14 @@ export default function App() {
     setFocoId(null);
     setFocoTmp(null);
     setDestinoId(null);
-    window.atril.guardarAjuste('servicioActivo', id);
+  };
+
+  const cerrarCulto = () => {
+    setServicioId(null);
+    setElementos([]);
+    setElementosDe(null);
+    setFocoId(null);
+    setDestinoId(null);
   };
 
   const recargarServicios = async () => {
@@ -93,14 +101,7 @@ export default function App() {
       setMaxLineas(await window.atril.ajuste('maxLineas', 4));
       setTemas(await window.atril.ajuste('temasPersonalizados', []));
       setTemaId(await window.atril.ajuste('temaActivo', 'madrugada'));
-      let lista = await window.atril.servicios.listar();
-      if (!lista.length) {
-        await window.atril.servicios.crear('Culto', hoy());
-        lista = await window.atril.servicios.listar();
-      }
-      setServicios(lista);
-      const activo = await window.atril.ajuste('servicioActivo', null);
-      await cargarServicio((lista.find((s) => s.id === activo) || lista[0]).id);
+      setServicios(await window.atril.servicios.listar());
       setProy(await window.atril.proyeccion.estado());
       setListo(true);
     })();
@@ -293,6 +294,7 @@ export default function App() {
   };
 
   const agregar = (parcial, seleccionar = true) => {
+    if (!servicioId) { setNuevoPendiente(parcial); return null; }
     const el = { id: uid(), ...parcial };
     setElementos((prev) => {
       const copia = [...prev];
@@ -358,12 +360,13 @@ export default function App() {
     editarServicio: () => setModal({ tipo: 'culto', inicial: { nombre: servicioActual ? servicioActual.nombre : '', fecha: servicioActual ? servicioActual.fecha : hoy() } }),
     historial: () => setModal({ tipo: 'historial' }),
     fijarDestino: setDestinoId,
+    abrir: (id) => abrirCulto(id),
+    cerrarCulto,
     duplicarServicio: async () => { const id = await window.atril.servicios.duplicar(servicioId, servicioActual.nombre, hoy()); await recargarServicios(); await cargarServicio(id); avisar('Culto duplicado para hoy.'); },
     borrarServicio: () => setModal({ tipo: 'confirmar', titulo: 'Eliminar culto', mensaje: `Se eliminará «${servicioActual ? servicioActual.nombre : ''}» con todo su orden. Las canciones no se borran.`, alAceptar: async () => {
       await window.atril.servicios.borrar(servicioId);
-      let lista = await recargarServicios();
-      if (!lista.length) { await window.atril.servicios.crear('Culto', hoy()); lista = await recargarServicios(); }
-      await cargarServicio(lista[0].id);
+      await recargarServicios();
+      cerrarCulto();
       setModal(null);
     } }),
     seleccionar: (el) => { setFocoTmp(null); setFocoId(el.id); setConsulta(''); },
@@ -431,7 +434,7 @@ export default function App() {
       else if (c.tipo === 'versiculo') await proyectarVersiculo(c.libro, c.capitulo, c.versiculo);
       else if (c.tipo === 'cancion') {
         const cancion = await window.atril.canciones.obtener(c.id);
-        if (cancion) { const el = agregar({ tipo: 'cancion', cancionId: cancion.id, titulo: cancion.titulo }); await proyectarDiap(el, 0); }
+        if (cancion) { const el = agregar({ tipo: 'cancion', cancionId: cancion.id, titulo: cancion.titulo }); if (el) await proyectarDiap(el, 0); }
       }
     },
     teclado: (e) => {
@@ -518,12 +521,19 @@ export default function App() {
 
   const borrarDelHistorial = async (s) => {
     await window.atril.servicios.borrar(s.id);
-    let lista = await recargarServicios();
-    if (!lista.length) {
-      await window.atril.servicios.crear('Culto', hoy());
-      lista = await recargarServicios();
-    }
-    if (s.id === servicioId) await cargarServicio(lista[0].id);
+    await recargarServicios();
+    if (s.id === servicioId) cerrarCulto();
+  };
+
+  const crearConPendiente = async ({ nombre, fecha, secciones }) => {
+    const id = await window.atril.servicios.crear(nombre, fecha);
+    const base = secciones ? SECCIONES_BASE.map((t) => ({ id: uid(), tipo: 'seccion', titulo: t })) : [];
+    await window.atril.servicios.guardar(id, [...base, { id: uid(), ...nuevoPendiente }]);
+    await recargarServicios();
+    await cargarServicio(id);
+    setPestana('culto');
+    setNuevoPendiente(null);
+    avisar('Culto creado con lo que elegiste.');
   };
 
   const cambiarMaxLineas = (n) => { setMaxLineas(n); window.atril.guardarAjuste('maxLineas', n); };
@@ -588,6 +598,7 @@ export default function App() {
       </div>
 
       {modal && modal.tipo === 'pasaje' && <SelectorPasaje libros={libros} alCerrar={() => setModal(null)} alAceptar={(r) => { agregarPasaje(r.libro, r.capitulo, r.desde, r.hasta); setModal(null); }} />}
+      {nuevoPendiente && <FormCulto alCerrar={() => setNuevoPendiente(null)} alAceptar={crearConPendiente} />}
       {modal && modal.tipo === 'culto' && <FormCulto inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={guardarCulto} />}
       {modal && modal.tipo === 'historial' && <HistorialCultos servicios={servicios} servicioId={servicioId} alAbrir={abrirCulto} alUsarComoBase={usarComoBase} alBorrar={borrarDelHistorial} alNuevo={() => setModal({ tipo: 'culto' })} alCerrar={() => setModal(null)} />}
       {modal && modal.tipo === 'texto' && <FormTexto inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={(d) => { if (modal.inicial) actualizarElemento(modal.inicial.id, d); else agregar({ tipo: 'texto', ...d }); setModal(null); }} />}

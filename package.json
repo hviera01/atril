@@ -1,0 +1,76 @@
+{
+  "name": "atril",
+  "version": "1.0.0",
+  "description": "Proyección de versículos, canciones y anuncios para la iglesia",
+  "main": "main/main.js",
+  "private": true,
+  "author": "Henry Viera",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "web": "vite build",
+    "start": "npm run web && electron .",
+    "test": "node --test \"test/*.test.js\"",
+    "biblia": "node scripts/preparar-biblia.js",
+    "iconos": "node scripts/iconos.js",
+    "instalador": "node scripts/instalador.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "png-to-ico": "^3.0.2",
+    "sharp": "^0.35.5",
+    "vite": "^8.3.4",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource-variable/instrument-sans": "^5.3.0",
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/cormorant-garamond": "^5.3.0",
+    "@fontsource/dm-serif-display": "^5.3.0"
+  },
+  "allowScripts": {
+    "electron@44.7.0": true,
+    "electron-winstaller@5.4.0": true,
+    "sharp@0.35.5": true
+  },
+  "build": {
+    "appId": "app.atril.iglesia",
+    "productName": "Atril",
+    "executableName": "Atril",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main/**",
+      "dist-web/**",
+      "data/rvr1960.json",
+      "build/icon.png",
+      "package.json",
+      "!**/*.map"
+    ],
+    "asar": true,
+    "compression": "normal",
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "electronLanguages": [
+      "es",
+      "es-419",
+      "en-US"
+    ]
+  }
+}

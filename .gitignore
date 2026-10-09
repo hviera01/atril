@@ -1,0 +1,6 @@
+node_modules/
+dist-web/
+dist/
+instalador/
+data/rvr1960.json
+*.log

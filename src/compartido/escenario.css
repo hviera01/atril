@@ -1,0 +1,29 @@
+.esc { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #000; }
+.esc-lienzo { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform-origin: top left; overflow: hidden; }
+.esc-fondo { position: absolute; inset: 0; overflow: hidden; }
+.esc-fondo img, .esc-fondo video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.esc-velo { position: absolute; inset: 0; background: #000; }
+.esc-capa { position: absolute; inset: 0; animation: esc-entra 650ms cubic-bezier(.22, .8, .3, 1) both; }
+.esc-capa.sale { animation: esc-sale 650ms ease both; pointer-events: none; }
+@keyframes esc-entra { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes esc-sale { from { opacity: 1; } to { opacity: 0; } }
+.esc-cuerpo { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; }
+.esc-caja { flex: 1; min-height: 0; display: flex; align-items: center; }
+.esc-texto { width: 100%; text-wrap: balance; overflow-wrap: break-word; hyphens: manual; }
+.esc-linea-letra { text-wrap: balance; }
+.esc-texto.sin-cortes .esc-linea-letra { white-space: nowrap; }
+.esc-num { font-size: .5em; font-weight: 700; margin-right: .22em; vertical-align: .75em; line-height: 0; font-family: 'Instrument Sans Variable', sans-serif; }
+.esc-ref { flex: none; padding: 6px 0; line-height: 1.2; }
+.esc-version { opacity: .7; font-weight: 500; }
+.esc-linea { flex: none; width: 150px; height: 4px; margin: 26px auto; border-radius: 2px; }
+.esc-marco { position: absolute; inset: 52px; border: 3px solid; opacity: .85; pointer-events: none; }
+.esc-marco-int { inset: 68px; border-width: 1px; opacity: .55; }
+.esc-barra { position: absolute; top: 24%; bottom: 24%; width: 10px; border-radius: 3px; }
+.esc-imagen { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.esc-cuenta { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+.esc-logo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.esc-logo img { width: 560px; height: 560px; filter: drop-shadow(0 18px 50px rgba(0, 0, 0, .45)); }
+.esc-logo-nombre { font-size: 84px; line-height: 1.05; margin-top: 18px; }
+.esc-logo-suf { font-size: 44px; letter-spacing: .3em; padding-left: .3em; }
+.esc-marca { position: absolute; object-fit: contain; }
+.esc-negro { position: absolute; inset: 0; background: #000; transition: opacity 380ms ease; pointer-events: none; }

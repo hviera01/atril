@@ -13,6 +13,7 @@ import { FormCulto, SECCIONES_BASE, FormTexto, FormTemporizador, FormNombre, Con
 import { hoy } from '../compartido/fechas';
 import { TEMAS_INTEGRADOS, completarTema } from '../compartido/temas';
 import { IGLESIA } from '../compartido/iglesia';
+import { cargaParaRol } from '../compartido/pantallas';
 import { capituloBiblia, construirDiapositivas, contenidoVersiculos, resumenElemento } from '../compartido/diapositivas';
 import logoRedondo from '../compartido/logo-redondo.png';
 
@@ -56,6 +57,7 @@ export default function App() {
   const [listo, setListo] = useState(false);
   const [destinoId, setDestinoId] = useState(null);
   const [nuevoPendiente, setNuevoPendiente] = useState(null);
+  const [pantallasCfg, setPantallasCfg] = useState({});
   const buscador = useRef(null);
   const acc = useRef({});
   const ultimoUso = useRef(null);
@@ -101,6 +103,7 @@ export default function App() {
       setMaxLineas(await window.atril.ajuste('maxLineas', 4));
       setTemas(await window.atril.ajuste('temasPersonalizados', []));
       setTemaId(await window.atril.ajuste('temaActivo', 'madrugada'));
+      setPantallasCfg(await window.atril.ajuste('pantallasCfg', {}));
       setServicios(await window.atril.servicios.listar());
       setProy(await window.atril.proyeccion.estado());
       setListo(true);
@@ -119,8 +122,15 @@ export default function App() {
 
   useEffect(() => {
     if (!listo) return;
-    window.atril.proyeccion.enviar({ frame: { modo, contenido }, tema });
-  }, [modo, contenido, tema, listo]);
+    const porPantalla = {};
+    for (const p of proy ? proy.pantallas : []) {
+      const cfg = pantallasCfg[p.id] || {};
+      const carga = cargaParaRol(cfg.rol || 'principal', { modo, contenido, siguiente });
+      const propio = cfg.tema ? todosTemas.find((x) => x.id === cfg.tema) : null;
+      porPantalla[p.id] = { ...carga, tema: propio ? completarTema(propio) : tema };
+    }
+    window.atril.proyeccion.enviar({ base: { frame: { modo, contenido }, tema }, porPantalla });
+  }, [modo, contenido, siguiente, tema, todosTemas, proy, pantallasCfg, listo]);
 
   useEffect(() => {
     if (!listo) return;
@@ -563,6 +573,12 @@ export default function App() {
     avisar('Culto creado con lo que elegiste.');
   };
 
+  const cambiarPantalla = (id, cambios) => {
+    const nueva = { ...pantallasCfg, [id]: { ...(pantallasCfg[id] || {}), ...cambios } };
+    setPantallasCfg(nueva);
+    window.atril.guardarAjuste('pantallasCfg', nueva);
+  };
+
   const cambiarMaxLineas = (n) => { setMaxLineas(n); window.atril.guardarAjuste('maxLineas', n); };
 
   if (!listo) return <div className="cargando"><img src={logoRedondo} alt="" /></div>;
@@ -634,7 +650,7 @@ export default function App() {
       {modal && modal.tipo === 'confirmar' && <Confirmar titulo={modal.titulo} mensaje={modal.mensaje} alCerrar={() => setModal(null)} alAceptar={modal.alAceptar} />}
       {modal && modal.tipo === 'cancion' && <EditorCancion id={modal.id} maxLineas={maxLineas} alCerrar={() => setModal(null)} alGuardar={cancionGuardada} alBorrar={cancionBorrada} />}
       {modal && modal.tipo === 'diseno' && <EditorTema personalizados={temas} temaId={tema.id} alElegir={accionesVivo.elegirTema} alGuardar={(lista) => { setTemas(lista); window.atril.guardarAjuste('temasPersonalizados', lista); }} alCerrar={() => setModal(null)} />}
-      {modal && modal.tipo === 'ajustes' && <Ajustes proy={proy} maxLineas={maxLineas} alMaxLineas={cambiarMaxLineas} version={version} nueva={nueva} avisar={avisar} alDatosCambiados={async () => { await recargarServicios(); setVersionDatos((v) => v + 1); }} alCerrar={() => setModal(null)} />}
+      {modal && modal.tipo === 'ajustes' && <Ajustes proy={proy} pantallasCfg={pantallasCfg} temas={todosTemas} alCambiarPantalla={cambiarPantalla} maxLineas={maxLineas} alMaxLineas={cambiarMaxLineas} version={version} nueva={nueva} avisar={avisar} alDatosCambiados={async () => { await recargarServicios(); setVersionDatos((v) => v + 1); }} alCerrar={() => setModal(null)} />}
       {modal && modal.tipo === 'remoto' && <Remoto alCerrar={() => setModal(null)} />}
       {aviso && <div className="aviso">{aviso}</div>}
     </div>

@@ -179,15 +179,28 @@ class Proyeccion {
     });
   }
 
-  enviar(frame) {
-    this.ultimo = frame;
-    for (const w of this.wins.values()) {
-      if (!w.isDestroyed() && !w.webContents.isLoading()) w.webContents.send('pantalla', frame);
+  cargaPara(clave) {
+    const p = this.ultimo;
+    if (!p) return null;
+    if (clave !== 'ventana' && p.porPantalla && p.porPantalla[String(clave)]) return p.porPantalla[String(clave)];
+    return p.base;
+  }
+
+  enviar(payload) {
+    this.ultimo = payload;
+    for (const [clave, w] of this.wins) {
+      if (w.isDestroyed() || w.webContents.isLoading()) continue;
+      const carga = this.cargaPara(clave);
+      if (carga) w.webContents.send('pantalla', carga);
     }
   }
 
   reenviarA(contenidos) {
-    if (this.ultimo && contenidos && !contenidos.isDestroyed()) contenidos.send('pantalla', this.ultimo);
+    for (const [clave, w] of this.wins) {
+      if (w.isDestroyed() || w.webContents !== contenidos) continue;
+      const carga = this.cargaPara(clave);
+      if (carga) contenidos.send('pantalla', carga);
+    }
   }
 
   ventanaDe(contenidos) {

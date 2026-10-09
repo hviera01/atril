@@ -42,7 +42,7 @@ function estiloReferencia(t) {
 
 const MIN_SIN_CORTES = 70;
 
-function TextoAjustado({ t, clave, sinCortes, columnas, capitular, children }) {
+export function TextoAjustado({ t, clave, sinCortes, columnas, capitular, children }) {
   const ref = useRef(null);
   const ajustar = useCallback(() => {
     const el = ref.current;

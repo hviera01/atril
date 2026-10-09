@@ -44,3 +44,17 @@
 .lib-cab { position: absolute; top: 168px; font-size: 25px !important; letter-spacing: .22em !important; text-transform: uppercase; opacity: .72; text-align: center; white-space: nowrap; }
 .lib-cab-der { left: 1030px; width: 690px; }
 .lib-cab-izq { left: 196px; width: 708px; }
+
+.esc-stage .esc-lienzo { background: linear-gradient(180deg, #14100c, #070504); }
+.st-barra { position: absolute; left: 90px; right: 90px; top: 48px; display: flex; align-items: baseline; gap: 24px; font-family: 'Instrument Sans Variable', sans-serif; }
+.st-et { font-size: 30px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #d8a24a; }
+.st-ref { flex: 1; font-size: 40px; font-weight: 600; color: #f1e8d8; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-aviso { padding: 6px 20px; border: 3px solid #e8572a; border-radius: 6px; color: #e8572a; font-size: 30px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.st-reloj { font-size: 64px; font-weight: 600; color: #f1e8d8; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.st-actual { position: absolute; left: 90px; top: 170px; width: 1150px; height: 820px; display: flex; }
+.st-division { position: absolute; left: 1286px; top: 170px; width: 3px; height: 820px; background: #3a3025; }
+.st-sigue { position: absolute; left: 1336px; top: 170px; width: 494px; height: 820px; display: flex; flex-direction: column; }
+.st-sigue-cab { display: flex; align-items: baseline; gap: 16px; margin-bottom: 18px; font-family: 'Instrument Sans Variable', sans-serif; }
+.st-sigue-cab .st-et { font-size: 26px; }
+.st-sigue-cab .st-ref { font-size: 30px; color: #b3a58d; }
+.st-vacio { color: #5e5240; }

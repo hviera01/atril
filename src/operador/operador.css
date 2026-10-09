@@ -424,3 +424,8 @@ mark { background: rgba(216, 162, 74, .3); color: inherit; border-radius: 2px; p
 .sel-acciones-mini .sel-pista { flex: 1; }
 .sel-verso .caja { flex: none; margin-top: 3px; }
 .sel-verso .caja.on { color: #1c1408; }
+
+.pantalla-cfg { padding: 12px 14px; background: var(--panel); border: 1px solid var(--linea); border-left: 3px solid var(--oro); border-radius: 3px; display: flex; flex-direction: column; gap: 8px; }
+.pantalla-cfg p { margin: 0; }
+.pc-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pantallas-ajuste { gap: 10px; }

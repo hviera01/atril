@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { Modal, Campo, Segmentos, Interruptor } from './Modal';
 import Icono from './Iconos';
 import { IGLESIA } from '../../compartido/iglesia';
+import { ROLES, rolDe } from '../../compartido/pantallas';
 
-export function Ajustes({ proy, maxLineas, alMaxLineas, version, nueva, avisar, alDatosCambiados, alCerrar }) {
+export function Ajustes({ proy, pantallasCfg, temas, alCambiarPantalla, maxLineas, alMaxLineas, version, nueva, avisar, alDatosCambiados, alCerrar }) {
   const [estadoAct, setEstadoAct] = useState('');
   const [progreso, setProgreso] = useState(null);
 
@@ -38,11 +39,31 @@ export function Ajustes({ proy, maxLineas, alMaxLineas, version, nueva, avisar, 
         <h3>Pantalla de proyección</h3>
         {proy && proy.pantallas.length > 1 ? (
           <>
-            <p className="tenue">Marca las pantallas donde se proyecta. Todas muestran lo mismo.</p>
+            <p className="tenue">Marca las pantallas donde se proyecta y elige qué muestra cada una. Puedes usar todas las que tengas conectadas.</p>
             <div className="pantallas-ajuste">
-              {proy.pantallas.map((p) => (
-                <Interruptor key={p.id} valor={proy.abierta ? p.activa : p.elegida} alCambiar={(on) => window.atril.proyeccion.activar(p.id, on)} etiqueta={`${p.nombre} · ${p.ancho}×${p.alto}`} />
-              ))}
+              {proy.pantallas.map((p) => {
+                const cfg = (pantallasCfg && pantallasCfg[p.id]) || {};
+                const rol = rolDe(cfg.rol);
+                return (
+                  <div key={p.id} className="pantalla-cfg">
+                    <Interruptor valor={proy.abierta ? p.activa : p.elegida} alCambiar={(on) => window.atril.proyeccion.activar(p.id, on)} etiqueta={`${p.nombre} · ${p.ancho}×${p.alto}`} />
+                    <div className="pc-campos">
+                      <Campo etiqueta="Muestra">
+                        <select value={rol.id} onChange={(e) => alCambiarPantalla(p.id, { rol: e.target.value })}>
+                          {ROLES.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                        </select>
+                      </Campo>
+                      <Campo etiqueta="Diseño">
+                        <select value={cfg.tema || ''} onChange={(e) => alCambiarPantalla(p.id, { tema: e.target.value || null })} disabled={rol.id === 'escenario' || rol.id === 'negro'}>
+                          <option value="">El mismo de la principal</option>
+                          {temas.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                        </select>
+                      </Campo>
+                    </div>
+                    <p className="tenue chico-texto">{rol.desc}</p>
+                  </div>
+                );
+              })}
             </div>
             <div className="fila-botones">
               <button className="btn" onClick={() => window.atril.proyeccion.identificar()}>Identificar pantallas</button>

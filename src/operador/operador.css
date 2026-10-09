@@ -406,3 +406,21 @@ mark { background: rgba(216, 162, 74, .3); color: inherit; border-radius: 2px; p
 .presets button:hover { border-color: var(--oro); }
 .presets button.on { background: var(--oro); border-color: var(--oro); color: #1c1408; }
 .presets button.limpiar { border-style: dashed; color: var(--brasa); border-color: var(--brasa); }
+
+.pista-fila { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: -6px 0 14px; }
+.pista-fila .pista { margin: 0; }
+.verso-fila { display: flex; align-items: stretch; }
+.verso-fila .verso { flex: 1; min-width: 0; }
+.verso-check { flex: none; width: 38px; display: grid; place-items: center; background: none; border: 0; border-bottom: 1px solid #261f18; border-left: 3px solid transparent; padding: 0; }
+.verso-check:hover { background: var(--panel); }
+.caja { width: 20px; height: 20px; display: grid; place-items: center; border: 2px solid var(--linea2); border-radius: 4px; color: #1c1408; transition: background .1s, border-color .1s; }
+.verso-check:hover .caja { border-color: var(--oro); }
+.caja.on { background: var(--oro); border-color: var(--oro); }
+.verso.marcado { background: rgba(216, 162, 74, .14); }
+.barra-seleccion { position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; margin: 16px -28px -40px; padding: 12px 28px; background: var(--tinta2); border-top: 2px solid var(--oro); box-shadow: 0 -14px 28px rgba(0, 0, 0, .45); }
+.barra-sel-txt { font-size: 14px; color: var(--papel2); }
+.barra-sel-txt b { color: var(--oro); font-size: 16px; }
+.sel-acciones-mini { display: flex; align-items: center; gap: 8px; }
+.sel-acciones-mini .sel-pista { flex: 1; }
+.sel-verso .caja { flex: none; margin-top: 3px; }
+.sel-verso .caja.on { color: #1c1408; }

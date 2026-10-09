@@ -226,6 +226,15 @@ export default function App() {
     setVivo({ origen: 'biblia', libro, capitulo, desde: sel[0].v, hasta: sel[sel.length - 1].v, anclaId });
   };
 
+  const proyectarVersiculos = async (libro, capitulo, lista) => {
+    const todos = await capituloBiblia(libro, capitulo);
+    const elegidos = todos.filter((x) => lista.includes(x.v));
+    if (!elegidos.length) return;
+    setContenido(contenidoVersiculos(libros, libro, capitulo, elegidos));
+    setModo('contenido');
+    setVivo({ origen: 'biblia', libro, capitulo, desde: elegidos[0].v, hasta: elegidos[elegidos.length - 1].v, anclaId: null });
+  };
+
   const versiculoActual = () => {
     if (!vivo) return null;
     if (vivo.origen === 'biblia') return vivo;
@@ -308,6 +317,21 @@ export default function App() {
 
   const actualizarElemento = (id, cambios) => setElementos((prev) => prev.map((e) => (e.id === id ? { ...e, ...cambios } : e)));
 
+  const agregarVarios = (parciales) => {
+    if (!parciales.length) return;
+    if (!servicioId) { setNuevoPendiente(parciales); return; }
+    const nuevos = parciales.map((p) => ({ id: uid(), ...p }));
+    setElementos((prev) => {
+      const copia = [...prev];
+      copia.splice(indiceInsercion(copia, 'biblia'), 0, ...nuevos);
+      return copia;
+    });
+    setFocoTmp(null);
+    setFocoId(nuevos[0].id);
+    setPestana('culto');
+    avisar(nuevos.length > 1 ? `${nuevos.length} pasajes agregados al culto.` : 'Agregado al culto.');
+  };
+
   const agregarCancion = (c) => agregar({ tipo: 'cancion', cancionId: c.id, titulo: c.titulo });
   const agregarPasaje = (libro, capitulo, desde, hasta) => agregar({ tipo: 'biblia', libro, capitulo, desde: desde || null, hasta: hasta || null, agrupar: 1 });
 
@@ -381,6 +405,8 @@ export default function App() {
     libros,
     proyectarDiap: (i) => proyectarDiap(focoEl, i, diapsFoco),
     proyectarVersiculo,
+    proyectarVersiculos,
+    agregarVarios,
     agregarPasaje,
     agregarCancion,
     agregarFoco,
@@ -528,7 +554,7 @@ export default function App() {
   const crearConPendiente = async ({ nombre, fecha, secciones }) => {
     const id = await window.atril.servicios.crear(nombre, fecha);
     const base = secciones ? SECCIONES_BASE.map((t) => ({ id: uid(), tipo: 'seccion', titulo: t })) : [];
-    await window.atril.servicios.guardar(id, [...base, { id: uid(), ...nuevoPendiente }]);
+    await window.atril.servicios.guardar(id, [...base, ...[].concat(nuevoPendiente).map((p) => ({ id: uid(), ...p }))]);
     await recargarServicios();
     await cargarServicio(id);
     setPestana('culto');
@@ -597,7 +623,7 @@ export default function App() {
         </aside>
       </div>
 
-      {modal && modal.tipo === 'pasaje' && <SelectorPasaje libros={libros} alCerrar={() => setModal(null)} alAceptar={(r) => { agregarPasaje(r.libro, r.capitulo, r.desde, r.hasta); setModal(null); }} />}
+      {modal && modal.tipo === 'pasaje' && <SelectorPasaje libros={libros} alCerrar={() => setModal(null)} alAceptar={(r) => { agregarVarios(r.runs.map(([d, h]) => ({ tipo: 'biblia', libro: r.libro, capitulo: r.capitulo, desde: d, hasta: h, agrupar: 1 }))); setModal(null); }} />}
       {nuevoPendiente && <FormCulto alCerrar={() => setNuevoPendiente(null)} alAceptar={crearConPendiente} />}
       {modal && modal.tipo === 'culto' && <FormCulto inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={guardarCulto} />}
       {modal && modal.tipo === 'historial' && <HistorialCultos servicios={servicios} servicioId={servicioId} alAbrir={abrirCulto} alUsarComoBase={usarComoBase} alBorrar={borrarDelHistorial} alNuevo={() => setModal({ tipo: 'culto' })} alCerrar={() => setModal(null)} />}

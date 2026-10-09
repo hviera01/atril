@@ -16,16 +16,27 @@ export function nombreReferencia(libros, libro, capitulo, desde, hasta) {
   return r;
 }
 
+export function corridas(numeros) {
+  const orden = [...new Set(numeros)].sort((a, b) => a - b);
+  const salida = [];
+  for (const n of orden) {
+    const ultima = salida[salida.length - 1];
+    if (ultima && n === ultima[1] + 1) ultima[1] = n; else salida.push([n, n]);
+  }
+  return salida;
+}
+
+export const rangoTexto = (numeros) => corridas(numeros).map(([a, b]) => (a === b ? String(a) : `${a}-${b}`)).join(', ');
+
 export function contenidoVersiculos(libros, libro, capitulo, versos, version = VERSION) {
-  const primero = versos[0].v;
-  const ultimo = versos[versos.length - 1].v;
+  const rango = rangoTexto(versos.map((x) => x.v));
   return {
     tipo: 'versiculo',
     partes: versos.map((x) => ({ n: x.v, t: x.t })),
-    referencia: nombreReferencia(libros, libro, capitulo, primero, ultimo),
+    referencia: `${libros[libro - 1].nombre} ${capitulo}:${rango}`,
     libroNombre: libros[libro - 1].nombre,
     capitulo,
-    rango: primero === ultimo ? String(primero) : `${primero}-${ultimo}`,
+    rango,
     version,
   };
 }

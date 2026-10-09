@@ -65,7 +65,7 @@ async function main() {
 
   await clic(op, '.pestanas button', 'Culto');
   await esperar(400);
-  await clic(op, '.culto-botones .icono-btn');
+  await clic(op, '.inicio-culto .btn-lleno');
   await esperar(700);
   await js(op, `document.querySelector('.modal input:not([type])').value`);
   await clic(op, '.modal-pie .btn-lleno');
@@ -83,6 +83,7 @@ async function main() {
   await clic(op, '.sel-caps button', '23');
   await esperar(800);
   await js(op, `document.querySelectorAll('.sel-verso')[0].click()`);
+  await js(op, `document.querySelectorAll('.sel-verso')[1].click()`);
   await js(op, `document.querySelectorAll('.sel-verso')[2].click()`);
   await esperar(500);
   await foto(op, '43-selector-pasaje.png');
@@ -101,7 +102,7 @@ async function main() {
   await clic(op, '.culto-actual');
   await esperar(900);
   const filas = await js(op, `document.querySelectorAll('.culto-fila').length`);
-  revisar('Historial lista 2 cultos', filas === 2, `(${filas})`);
+  revisar('Historial lista el culto creado', filas === 1, `(${filas})`);
   await foto(op, '45-historial.png');
   await tecla(op, 'Escape');
 

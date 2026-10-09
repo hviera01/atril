@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Icono from './Iconos';
 import { IGLESIA } from '../../compartido/iglesia';
-import { nombreReferencia } from '../../compartido/diapositivas';
+import { nombreReferencia, corridas, rangoTexto } from '../../compartido/diapositivas';
 import logoRedondo from '../../compartido/logo-redondo.png';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -107,6 +107,8 @@ function VistaFoco({ foco, diaps, vivo, acciones }) {
 function Capitulo({ res, libros, vivo, acciones }) {
   const { libro, capitulo, desde, hasta } = res.referencia;
   const [ancla, setAncla] = useState(null);
+  const [marcados, setMarcados] = useState([]);
+  const [anclaMarca, setAnclaMarca] = useState(null);
   const l = libros[libro - 1];
   const vivoBiblia = vivo && vivo.origen === 'biblia' && vivo.libro === libro && vivo.capitulo === capitulo ? vivo : null;
 
@@ -117,6 +119,25 @@ function Capitulo({ res, libros, vivo, acciones }) {
       if (el) el.scrollIntoView({ block: 'center' });
     }
   }, [libro, capitulo, desde]);
+
+  useEffect(() => {
+    setMarcados([]);
+    setAnclaMarca(null);
+  }, [libro, capitulo]);
+
+  const alternar = (v, e) => {
+    if (e.shiftKey && anclaMarca !== null) {
+      const a = Math.min(anclaMarca, v);
+      const b = Math.max(anclaMarca, v);
+      const rango = Array.from({ length: b - a + 1 }, (_, i) => a + i);
+      setMarcados([...new Set([...marcados, ...rango])].sort((x, y) => x - y));
+      return;
+    }
+    setAnclaMarca(v);
+    setMarcados(marcados.includes(v) ? marcados.filter((x) => x !== v) : [...marcados, v].sort((x, y) => x - y));
+  };
+
+  const agregarMarcados = () => acciones.agregarVarios(corridas(marcados).map(([a, b]) => ({ tipo: 'biblia', libro, capitulo, desde: a, hasta: b, agrupar: 1 })));
 
   const irA = (cap) => {
     let lb = libro;
@@ -153,19 +174,37 @@ function Capitulo({ res, libros, vivo, acciones }) {
           <button className="btn" onClick={() => acciones.agregarPasaje(libro, capitulo, null, null)}><Icono n="mas" t={16} /> Capítulo completo</button>
         </div>
       </div>
-      <p className="tenue chico-texto pista">Clic proyecta el versículo. Shift + clic proyecta un rango.</p>
+      <div className="pista-fila">
+        <p className="tenue chico-texto pista">Clic en el versículo lo proyecta. Marca varios con las casillas, aunque no estén seguidos (Shift para un rango).</p>
+        <button className="btn chico" onClick={() => { setMarcados(res.versiculos.map((v) => v.v)); setAnclaMarca(null); }}>Marcar todos</button>
+      </div>
       <div className="versos">
         {res.versiculos.map((v) => {
           const enVivo = vivoBiblia && v.v >= vivoBiblia.desde && v.v <= vivoBiblia.hasta;
           const pedido = desde && v.v >= desde && v.v <= (hasta || desde);
+          const marcado = marcados.includes(v.v);
           return (
-            <button key={v.v} id={`v-${v.v}`} className={`verso${enVivo ? ' vivo' : ''}${pedido && !enVivo ? ' pedido' : ''}`} onClick={(e) => clic(v.v, e)}>
-              <span className="verso-n">{v.v}</span>
-              <span className="verso-t">{v.t}</span>
-            </button>
+            <div key={v.v} className="verso-fila">
+              <button className={`verso-check${marcado ? ' on' : ''}`} aria-pressed={marcado} title="Marcar este versículo" onClick={(e) => alternar(v.v, e)}>
+                <span className={`caja${marcado ? ' on' : ''}`}>{marcado && <Icono n="check" t={14} />}</span>
+              </button>
+              <button id={`v-${v.v}`} className={`verso${enVivo ? ' vivo' : ''}${pedido && !enVivo ? ' pedido' : ''}${marcado ? ' marcado' : ''}`} onClick={(e) => clic(v.v, e)}>
+                <span className="verso-n">{v.v}</span>
+                <span className="verso-t">{v.t}</span>
+              </button>
+            </div>
           );
         })}
       </div>
+      {marcados.length > 0 && (
+        <div className="barra-seleccion">
+          <span className="barra-sel-txt"><b>{marcados.length}</b> {marcados.length === 1 ? 'versículo' : 'versículos'} · {l.nombre} {capitulo}:{rangoTexto(marcados)}</span>
+          <span className="relleno" />
+          <button className="btn" onClick={() => { setMarcados([]); setAnclaMarca(null); }}>Quitar marcas</button>
+          <button className="btn" onClick={agregarMarcados}><Icono n="mas" t={16} /> Agregar al culto</button>
+          <button className="btn btn-lleno" onClick={() => acciones.proyectarVersiculos(libro, capitulo, marcados)}><Icono n="play" t={14} /> Proyectar</button>
+        </div>
+      )}
     </div>
   );
 }

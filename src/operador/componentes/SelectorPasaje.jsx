@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from './Modal';
 import Icono from './Iconos';
-import { nombreReferencia } from '../../compartido/diapositivas';
+import { corridas, rangoTexto } from '../../compartido/diapositivas';
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -9,8 +9,8 @@ export default function SelectorPasaje({ libros, alAceptar, alCerrar }) {
   const [libro, setLibro] = useState(null);
   const [cap, setCap] = useState(null);
   const [versos, setVersos] = useState([]);
-  const [desde, setDesde] = useState(null);
-  const [hasta, setHasta] = useState(null);
+  const [sel, setSel] = useState([]);
+  const [ancla, setAncla] = useState(null);
   const [filtro, setFiltro] = useState('');
   const [palabra, setPalabra] = useState('');
   const [encontrados, setEncontrados] = useState(null);
@@ -31,8 +31,10 @@ export default function SelectorPasaje({ libros, alAceptar, alCerrar }) {
       if (r.referencia) {
         setLibro(r.referencia.libro);
         setCap(r.referencia.capitulo);
-        setDesde(r.referencia.desde);
-        setHasta(r.referencia.hasta);
+        const d = r.referencia.desde;
+        const h2 = r.referencia.hasta || d;
+        setSel(d ? Array.from({ length: h2 - d + 1 }, (_, i) => d + i) : []);
+        setAncla(d || null);
         setEncontrados(null);
       } else {
         setEncontrados(r.palabras);
@@ -46,42 +48,42 @@ export default function SelectorPasaje({ libros, alAceptar, alCerrar }) {
     return libros.filter((l) => !f || norm(l.nombre).includes(f));
   }, [libros, filtro]);
 
+  const limpiarSeleccion = () => { setSel([]); setAncla(null); };
+
   const elegirLibro = (l) => {
     setLibro(l.id);
     setCap(l.capitulos === 1 ? 1 : null);
-    setDesde(null);
-    setHasta(null);
+    limpiarSeleccion();
   };
 
   const elegirCap = (c) => {
     setCap(c);
-    setDesde(null);
-    setHasta(null);
+    limpiarSeleccion();
   };
 
   const clicVerso = (v, e) => {
-    if (desde === null) { setDesde(v); setHasta(v); return; }
-    if (e.shiftKey || hasta === desde) {
-      if (v === desde && hasta === desde) { setDesde(null); setHasta(null); return; }
-      setDesde(Math.min(desde, v));
-      setHasta(Math.max(desde, v));
+    if (e.shiftKey && ancla !== null) {
+      const a = Math.min(ancla, v);
+      const b = Math.max(ancla, v);
+      const rango = Array.from({ length: b - a + 1 }, (_, i) => a + i);
+      setSel([...new Set([...sel, ...rango])].sort((x, y) => x - y));
       return;
     }
-    setDesde(v);
-    setHasta(v);
+    setAncla(v);
+    setSel(sel.includes(v) ? sel.filter((x) => x !== v) : [...sel, v].sort((x, y) => x - y));
   };
 
   const elegirResultado = (r) => {
     setLibro(r.libro);
     setCap(r.capitulo);
-    setDesde(r.versiculo);
-    setHasta(r.versiculo);
+    setSel([r.versiculo]);
+    setAncla(r.versiculo);
     setEncontrados(null);
     setPalabra('');
   };
 
   const etiqueta = libro && cap
-    ? nombreReferencia(libros, libro, cap, desde, hasta)
+    ? `${libros[libro - 1].nombre} ${cap}${sel.length ? `:${rangoTexto(sel)}` : ''}`
     : libro ? libros[libro - 1].nombre : 'Elige un libro';
 
   const grupo = (titulo, lista) => lista.length > 0 && (
@@ -103,10 +105,11 @@ export default function SelectorPasaje({ libros, alAceptar, alCerrar }) {
       pie={(
         <>
           <span className="sel-etiqueta">{etiqueta}</span>
+          {sel.length > 0 && <span className="tenue">{sel.length} {sel.length === 1 ? 'versículo' : 'versículos'}</span>}
           <span className="relleno" />
           <button className="btn" onClick={alCerrar}>Cancelar</button>
-          <button className="btn" disabled={!libro || !cap} onClick={() => alAceptar({ libro, capitulo: cap, desde: null, hasta: null })}>Capítulo completo</button>
-          <button className="btn btn-lleno" disabled={desde === null} onClick={() => alAceptar({ libro, capitulo: cap, desde, hasta })}><Icono n="mas" t={16} /> Agregar versículos</button>
+          <button className="btn" disabled={!libro || !cap} onClick={() => alAceptar({ libro, capitulo: cap, runs: [[null, null]] })}>Capítulo completo</button>
+          <button className="btn btn-lleno" disabled={sel.length === 0} onClick={() => alAceptar({ libro, capitulo: cap, runs: corridas(sel) })}><Icono n="mas" t={16} /> Agregar versículos</button>
         </>
       )}
     >
@@ -148,12 +151,17 @@ export default function SelectorPasaje({ libros, alAceptar, alCerrar }) {
             </div>
           ) : cap ? (
             <>
-              <p className="tenue chico-texto sel-pista">Toca un versículo. Toca otro para completar el rango.</p>
+              <div className="sel-acciones-mini">
+                <span className="tenue chico-texto sel-pista">Toca los que quieras, aunque no estén seguidos. Shift + clic marca un rango.</span>
+                <button className="btn chico" onClick={() => { setSel(versos.map((v) => v.v)); setAncla(null); }}>Todos</button>
+                <button className="btn chico" disabled={sel.length === 0} onClick={limpiarSeleccion}>Ninguno</button>
+              </div>
               <div className="sel-lista">
                 {versos.map((v) => {
-                  const dentro = desde !== null && v.v >= desde && v.v <= hasta;
+                  const dentro = sel.includes(v.v);
                   return (
                     <button key={v.v} className={`sel-verso${dentro ? ' on' : ''}`} onClick={(e) => clicVerso(v.v, e)}>
+                      <span className={`caja${dentro ? ' on' : ''}`}>{dentro && <Icono n="check" t={14} />}</span>
                       <b>{v.v}</b>
                       <span>{v.t}</span>
                     </button>

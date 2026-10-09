@@ -152,7 +152,7 @@ function ContenidoLibro({ c, t }) {
         <div className="lib-libro" style={refEstilo}>{c.libroNombre}</div>
         <div className="lib-capitulo" style={{ fontFamily: fuenteCss(t.texto.fuente), color }}>{c.capitulo}</div>
         <Ornamento color={color} />
-        <div className="lib-pie" style={{ ...refEstilo, fontSize: t.referencia.tam * 0.8 }}>{c.rango.includes('-') ? 'Versículos' : 'Versículo'} {c.rango}</div>
+        <div className="lib-pie" style={{ ...refEstilo, fontSize: t.referencia.tam * 0.8 }}>{/[-,]/.test(c.rango) ? 'Versículos' : 'Versículo'} {c.rango}</div>
       </>
     );
   } else {

@@ -458,6 +458,7 @@ export default function App() {
       else if (c.tipo === 'elementoAnt') await elementoVecino(-1);
       else if (c.tipo === 'elemento') { const el = elementos.find((e) => e.id === c.id); if (el) await irAElemento(el, false); }
       else if (c.tipo === 'versiculo') await proyectarVersiculo(c.libro, c.capitulo, c.versiculo);
+      else if (c.tipo === 'versiculos') await proyectarVersiculos(c.libro, c.capitulo, c.lista);
       else if (c.tipo === 'cancion') {
         const cancion = await window.atril.canciones.obtener(c.id);
         if (cancion) { const el = agregar({ tipo: 'cancion', cancionId: cancion.id, titulo: cancion.titulo }); if (el) await proyectarDiap(el, 0); }

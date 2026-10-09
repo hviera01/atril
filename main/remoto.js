@@ -4,6 +4,7 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { URL } = require('node:url');
+const { LIBROS } = require('./libros');
 
 const PUERTO_BASE = 7878;
 
@@ -33,7 +34,7 @@ class ServidorRemoto {
       this.clave = crypto.randomBytes(3).toString('hex');
       datos.guardarAjuste('remotoClave', this.clave);
     }
-    this.pagina = fs.readFileSync(path.join(__dirname, 'remoto.html'), 'utf8');
+    this.logo = fs.readFileSync(path.join(__dirname, 'remoto-logo.png'));
   }
 
   iniciar() {
@@ -79,7 +80,25 @@ class ServidorRemoto {
     }
     if (url.pathname === '/') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-      res.end(this.pagina);
+      res.end(fs.readFileSync(path.join(__dirname, 'remoto.html'), 'utf8'));
+      return;
+    }
+    if (url.pathname === '/logo.png') {
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'max-age=86400' });
+      res.end(this.logo);
+      return;
+    }
+    if (url.pathname === '/libros') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(LIBROS.map(({ id, nombre, capitulos, testamento }) => ({ id, nombre, capitulos, testamento }))));
+      return;
+    }
+    if (url.pathname === '/capitulo') {
+      const libro = Number(url.searchParams.get('libro'));
+      const cap = Number(url.searchParams.get('cap'));
+      const valido = libro >= 1 && libro <= 66 && cap >= 1 && cap <= LIBROS[libro - 1].capitulos;
+      res.writeHead(valido ? 200 : 400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(valido ? this.datos.capitulo(libro, cap) : []));
       return;
     }
     if (url.pathname === '/eventos') {
@@ -93,6 +112,7 @@ class ServidorRemoto {
       const r = this.datos.buscar(url.searchParams.get('q') || '');
       const ligero = {
         referencia: r.referencia,
+        libros: r.libros,
         versiculos: r.versiculos.slice(0, 200),
         palabras: r.palabras.slice(0, 40),
         canciones: r.canciones,

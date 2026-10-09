@@ -14,6 +14,8 @@ import { hoy } from '../compartido/fechas';
 import { TEMAS_INTEGRADOS, completarTema } from '../compartido/temas';
 import { IGLESIA } from '../compartido/iglesia';
 import { cargaParaRol } from '../compartido/pantallas';
+import { organizarLetra } from '../compartido/letras.mjs';
+import { temaNuevoDesde } from '../compartido/temas';
 import { capituloBiblia, construirDiapositivas, contenidoVersiculos, resumenElemento } from '../compartido/diapositivas';
 import logoRedondo from '../compartido/logo-redondo.png';
 
@@ -58,6 +60,8 @@ export default function App() {
   const [destinoId, setDestinoId] = useState(null);
   const [nuevoPendiente, setNuevoPendiente] = useState(null);
   const [pantallasCfg, setPantallasCfg] = useState({});
+  const [logoDefecto, setLogoDefecto] = useState(null);
+  const [videoCtl, setVideoCtl] = useState({ pausa: false, silencio: false, reinicio: 0 });
   const buscador = useRef(null);
   const acc = useRef({});
   const ultimoUso = useRef(null);
@@ -104,6 +108,7 @@ export default function App() {
       setTemas(await window.atril.ajuste('temasPersonalizados', []));
       setTemaId(await window.atril.ajuste('temaActivo', 'madrugada'));
       setPantallasCfg(await window.atril.ajuste('pantallasCfg', {}));
+      setLogoDefecto(await window.atril.ajuste('logoMedios', null));
       setServicios(await window.atril.servicios.listar());
       setProy(await window.atril.proyeccion.estado());
       setListo(true);
@@ -123,14 +128,23 @@ export default function App() {
   useEffect(() => {
     if (!listo) return;
     const porPantalla = {};
-    for (const p of proy ? proy.pantallas : []) {
+    const lista = proy ? proy.pantallas : [];
+    const conAudio = lista.find((p) => (proy.abierta ? p.activa : p.elegida) && ['principal', 'avisos'].includes((pantallasCfg[p.id] || {}).rol || 'principal'));
+    const conVideo = (carga, audio) => (carga.frame && carga.frame.contenido && carga.frame.contenido.tipo === 'video'
+      ? { ...carga, frame: { ...carga.frame, video: { ...videoCtl, silencio: videoCtl.silencio || !audio } } }
+      : carga);
+    for (const p of lista) {
       const cfg = pantallasCfg[p.id] || {};
       const carga = cargaParaRol(cfg.rol || 'principal', { modo, contenido, siguiente });
       const propio = cfg.tema ? todosTemas.find((x) => x.id === cfg.tema) : null;
-      porPantalla[p.id] = { ...carga, tema: propio ? completarTema(propio) : tema };
+      porPantalla[p.id] = { ...conVideo(carga, conAudio && conAudio.id === p.id), tema: propio ? completarTema(propio) : tema };
     }
-    window.atril.proyeccion.enviar({ base: { frame: { modo, contenido }, tema }, porPantalla });
-  }, [modo, contenido, siguiente, tema, todosTemas, proy, pantallasCfg, listo]);
+    window.atril.proyeccion.enviar({ base: { ...conVideo({ frame: { modo, contenido } }, true), tema }, porPantalla });
+  }, [modo, contenido, siguiente, tema, todosTemas, proy, pantallasCfg, videoCtl, listo]);
+
+  useEffect(() => {
+    setVideoCtl({ pausa: false, silencio: false, reinicio: 0 });
+  }, [contenido && contenido.tipo === 'video' ? contenido.src : null]);
 
   useEffect(() => {
     if (!listo) return;
@@ -353,10 +367,10 @@ export default function App() {
     setConsulta('');
     await proyectarDiap(tmp, 0);
   };
-  const vistaPreviaMedio = (m) => { setFocoId(null); setFocoTmp({ id: `tmp-imagen-${m.archivo}`, tipo: 'imagen', src: m.url, nombre: m.nombre }); setConsulta(''); };
+  const vistaPreviaMedio = (m) => { setFocoId(null); setFocoTmp({ id: `tmp-${m.tipo}-${m.archivo}`, tipo: m.tipo, src: m.url, nombre: m.nombre, ...(logoDefecto ? { logo: logoDefecto } : {}) }); setConsulta(''); };
   const agregarFoco = (tmp) => {
     if (tmp.tipo === 'cancion') agregar({ tipo: 'cancion', cancionId: tmp.cancionId, titulo: tmp.titulo });
-    else if (tmp.tipo === 'imagen') agregar({ tipo: 'imagen', src: tmp.src, nombre: tmp.nombre });
+    else if (tmp.tipo === 'imagen' || tmp.tipo === 'video') agregar({ tipo: tmp.tipo, src: tmp.src, nombre: tmp.nombre, ...(tmp.logo ? { logo: tmp.logo } : {}) });
   };
 
   const quitar = (id) => {
@@ -425,6 +439,7 @@ export default function App() {
     irA: (t) => setConsulta(t),
     cambiarAgrupar: (el, n) => actualizarElemento(el.id, { agrupar: n }),
     editarCancion: (id) => setModal({ tipo: 'cancion', id }),
+    cambiarLogo: (...args) => cambiarLogo(...args),
     editarElemento: abrirEditorElemento,
   };
 
@@ -438,6 +453,9 @@ export default function App() {
     elegirTema: (id) => { setTemaId(id); window.atril.guardarAjuste('temaActivo', id); },
     abrirProyeccion: () => window.atril.proyeccion.abrir(),
     cerrarProyeccion: () => window.atril.proyeccion.cerrar(),
+    videoPausa: () => setVideoCtl((v) => ({ ...v, pausa: !v.pausa })),
+    videoReiniciar: () => setVideoCtl((v) => ({ ...v, reinicio: v.reinicio + 1, pausa: false })),
+    videoSilencio: () => setVideoCtl((v) => ({ ...v, silencio: !v.silencio })),
     activarPantalla: (id, encendida) => window.atril.proyeccion.activar(id, encendida),
     identificar: () => window.atril.proyeccion.identificar(),
     versoAnterior: () => versoNav(-1),
@@ -573,6 +591,36 @@ export default function App() {
     avisar('Culto creado con lo que elegiste.');
   };
 
+  const importarCanciones = async () => {
+    const archivos = await window.atril.canciones.importar();
+    for (const a of archivos) await window.atril.canciones.guardar({ titulo: a.titulo, letra: organizarLetra(a.letra, maxLineas) });
+    if (archivos.length) {
+      setVersionDatos((v) => v + 1);
+      avisar(`${archivos.length} ${archivos.length === 1 ? 'canción importada' : 'canciones importadas'} y organizadas en estrofas.`);
+    }
+  };
+
+  const usarComoFondo = (m) => {
+    const nuevo = temaNuevoDesde(tema, `${tema.nombre} · ${m.nombre}`);
+    nuevo.fondo = { ...nuevo.fondo, tipo: m.tipo, medio: m.url, oscurecer: 0.45 };
+    const lista = [...temas, nuevo];
+    setTemas(lista);
+    window.atril.guardarAjuste('temasPersonalizados', lista);
+    setTemaId(nuevo.id);
+    window.atril.guardarAjuste('temaActivo', nuevo.id);
+    avisar('Listo: ese archivo quedó de fondo. Puedes ajustarlo en Editar diseños.');
+  };
+
+  const cambiarLogo = async (el, logo, comoDefecto) => {
+    if (comoDefecto) {
+      setLogoDefecto(logo);
+      window.atril.guardarAjuste('logoMedios', logo);
+    }
+    const nuevo = { ...el, logo };
+    if (el.id.startsWith('tmp-')) setFocoTmp(nuevo); else actualizarElemento(el.id, { logo });
+    if (vivo && vivo.origen === 'elemento' && vivo.elemento.id === el.id) await proyectarDiap(nuevo, vivo.indice);
+  };
+
   const cambiarPantalla = (id, cambios) => {
     const nueva = { ...pantallasCfg, [id]: { ...(pantallasCfg[id] || {}), ...cambios } };
     setPantallasCfg(nueva);
@@ -615,7 +663,7 @@ export default function App() {
       <div className="cuerpo">
         <aside className="izq">
           <div className="pestanas">
-            {[['culto', 'Culto', 'culto'], ['biblia', 'Biblia', 'biblia'], ['canciones', 'Canciones', 'cancion'], ['medios', 'Imágenes', 'imagen']].map(([id, t, ic]) => (
+            {[['culto', 'Culto', 'culto'], ['biblia', 'Biblia', 'biblia'], ['canciones', 'Canciones', 'cancion'], ['medios', 'Medios', 'imagen']].map(([id, t, ic]) => (
               <button key={id} className={pestana === id ? 'on' : ''} onClick={() => setPestana(id)}><Icono n={ic} t={16} />{t}</button>
             ))}
           </div>
@@ -624,10 +672,10 @@ export default function App() {
           )}
           {pestana === 'biblia' && <PanelBiblia libros={libros} actual={libroActual} alElegir={(l) => setConsulta(l.nombre)} />}
           {pestana === 'canciones' && (
-            <PanelCanciones destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaCancion} alProyectar={proyectarCancion} alAgregar={agregarCancion} alEditar={(id) => setModal({ tipo: 'cancion', id })} alNueva={() => setModal({ tipo: 'cancion', id: null })} alImportar={async () => { const n = await window.atril.canciones.importar(); if (n) { setVersionDatos((v) => v + 1); avisar(`${n} ${n === 1 ? 'canción importada' : 'canciones importadas'}.`); } }} />
+            <PanelCanciones destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaCancion} alProyectar={proyectarCancion} alAgregar={agregarCancion} alEditar={(id) => setModal({ tipo: 'cancion', id })} alNueva={() => setModal({ tipo: 'cancion', id: null })} alImportar={importarCanciones} />
           )}
           {pestana === 'medios' && (
-            <PanelMedios destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaMedio} alAgregar={(m) => agregar({ tipo: 'imagen', src: m.url, nombre: m.nombre })} alCambio={() => setVersionDatos((v) => v + 1)} />
+            <PanelMedios destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaMedio} alAgregar={(m) => agregar({ tipo: m.tipo, src: m.url, nombre: m.nombre, ...(logoDefecto ? { logo: logoDefecto } : {}) })} alUsarFondo={usarComoFondo} alCambio={() => setVersionDatos((v) => v + 1)} />
           )}
         </aside>
 
@@ -636,7 +684,7 @@ export default function App() {
         </main>
 
         <aside className="der">
-          <PanelVivo modo={modo} contenido={contenido} tema={tema} vivo={vivo} siguiente={siguiente} temas={todosTemas} temaId={tema.id} proy={proy} esVerso={!!versiculoActual()} acciones={accionesVivo} />
+          <PanelVivo modo={modo} contenido={contenido} tema={tema} vivo={vivo} siguiente={siguiente} temas={todosTemas} temaId={tema.id} proy={proy} esVerso={!!versiculoActual()} videoCtl={videoCtl} acciones={accionesVivo} />
         </aside>
       </div>
 

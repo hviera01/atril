@@ -50,3 +50,25 @@ test('letras: estrofas, etiquetas y partición', async () => {
   assert.deepStrictEqual(s[2].lineas.length + s[3].lineas.length, 7);
   assert.ok(Math.abs(s[2].lineas.length - s[3].lineas.length) <= 1);
 });
+
+
+test('organizar letra pegada sin estrofas', async () => {
+  const { organizarLetra, dividirLetra } = await import('../src/compartido/letras.mjs');
+  const pegada = ['Am G', 'Santo santo santo', 'Señor omnipotente', 'C F', 'Siempre los labios míos', 'Loores te dirán', 'Santo santo santo', 'Te adoro reverente', 'Dios en tres personas', 'Bendita Trinidad', 'Santo santo santo', 'Misericordioso y fuerte'].join('\n');
+  const org = organizarLetra(pegada, 4);
+  assert.ok(!/\bAm G\b|\bC F\b/.test(org), 'quita los acordes');
+  const partes = org.split('\n\n');
+  assert.strictEqual(partes.length, 3);
+  assert.deepStrictEqual(partes.map((p) => p.split('\n').length - 1), [4, 3, 3]);
+  assert.strictEqual(partes[0].split('\n')[0], '[Verso 1]');
+  assert.strictEqual(dividirLetra(org, 4).length, 3);
+});
+
+test('organizar letra detecta el coro repetido y respeta estrofas existentes', async () => {
+  const { organizarLetra } = await import('../src/compartido/letras.mjs');
+  const letra = 'Uno\nDos\n\nCoro aquí\nCoro allá\n\nTres\nCuatro\n\ncoro aquí\nCORO ALLÁ';
+  const partes = organizarLetra(letra, 4).split('\n\n');
+  assert.strictEqual(partes.length, 4);
+  assert.deepStrictEqual(partes.map((p) => p.split('\n')[0]), ['[Verso 1]', '[Coro]', '[Verso 2]', '[Coro]']);
+  assert.strictEqual(organizarLetra('[Coro]\nA\nB\n\n[Verso 1]\nC\nD', 4), '[Coro]\nA\nB\n\n[Verso 1]\nC\nD');
+});

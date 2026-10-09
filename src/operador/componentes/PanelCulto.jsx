@@ -3,12 +3,12 @@ import Icono from './Iconos';
 import { resumenElemento } from '../../compartido/diapositivas';
 import { etiquetaFecha } from '../../compartido/fechas';
 
-const ICONO_TIPO = { biblia: 'biblia', cancion: 'cancion', imagen: 'imagen', texto: 'texto', temporizador: 'reloj', seccion: 'seccion' };
+const ICONO_TIPO = { biblia: 'biblia', cancion: 'cancion', imagen: 'imagen', video: 'video', texto: 'texto', temporizador: 'reloj', seccion: 'seccion' };
 
 const OPCIONES_AGREGAR = [
   { tipo: 'biblia', t: 'Pasaje bíblico', d: 'Juan 3:16-18, Salmo 23…' },
   { tipo: 'cancion', t: 'Canción', d: 'Elegir de la biblioteca' },
-  { tipo: 'imagen', t: 'Imagen', d: 'Ilustración o fondo' },
+  { tipo: 'imagen', t: 'Imagen o video', d: 'Ilustración o video corto' },
   { tipo: 'texto', t: 'Anuncio o texto', d: 'Mensaje libre' },
   { tipo: 'temporizador', t: 'Cuenta regresiva', d: 'Para iniciar el culto o un receso' },
   { tipo: 'seccion', t: 'Sección', d: 'Separador: Alabanza, Predicación…' },

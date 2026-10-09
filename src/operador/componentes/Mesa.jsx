@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Icono from './Iconos';
+import LogoOpciones from './LogoOpciones';
 import { IGLESIA } from '../../compartido/iglesia';
 import { nombreReferencia, corridas, rangoTexto } from '../../compartido/diapositivas';
 import logoRedondo from '../../compartido/logo-redondo.png';
@@ -67,10 +68,11 @@ function VistaFoco({ foco, diaps, vivo, acciones }) {
     <div className="foco">
       <div className="foco-cab">
         <div className="foco-titulos">
-          <span className="foco-tipo">{{ biblia: 'Pasaje bíblico · RVR1960', cancion: 'Canción', imagen: 'Imagen', texto: 'Anuncio o texto', temporizador: 'Cuenta regresiva' }[foco.tipo]}</span>
+          <span className="foco-tipo">{{ biblia: 'Pasaje bíblico · RVR1960', cancion: 'Canción', imagen: 'Imagen', video: 'Video', texto: 'Anuncio o texto', temporizador: 'Cuenta regresiva' }[foco.tipo]}</span>
           <h2>{titulo}</h2>
         </div>
         <div className="foco-acciones">
+          {(foco.tipo === 'imagen' || foco.tipo === 'video') && <LogoOpciones medio={foco} alCambiar={(logo, comoDefecto) => acciones.cambiarLogo(foco, logo, comoDefecto)} />}
           {foco.tipo === 'biblia' && !esTemp && (
             <div className="agrupar" title="Versículos por diapositiva">
               <span>Por diapositiva</span>
@@ -95,7 +97,7 @@ function VistaFoco({ foco, diaps, vivo, acciones }) {
                 <span className="diap-et">{d.etiqueta}</span>
                 {vivoAqui === i && <span className="diap-vivo">en vivo</span>}
               </span>
-              {d.imagen ? <img src={d.imagen} alt="" /> : <span className="diap-texto">{d.contenido.tipo === 'letra' ? d.contenido.lineas.map((l, k) => <span key={k}>{l}</span>) : d.resumen}</span>}
+              {d.imagen ? (d.esVideo ? <video src={`${d.imagen}#t=0.1`} muted preload="metadata" /> : <img src={d.imagen} alt="" />) : <span className="diap-texto">{d.contenido.tipo === 'letra' ? d.contenido.lineas.map((l, k) => <span key={k}>{l}</span>) : d.resumen}</span>}
             </button>
           ))}
         </div>

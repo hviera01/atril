@@ -8,8 +8,9 @@ Funciona 100% sin internet. Solo usa la conexión, si hay, para avisar que exist
 
 - Biblia Reina-Valera 1960 completa y local: se busca por referencia (`jn 3 16`, `salmo 23`, `1 co 13:4-7`) o por palabra.
 - Culto armado de antemano (pasajes, canciones, imágenes, anuncios, cuenta regresiva) y navegación en vivo con flechas, o saltando a cualquier otro pasaje sin perder el lugar.
-- Biblioteca de canciones: se pega la letra y se divide sola en estrofas y coros.
-- Pantalla de proyección en una ventana aparte para el datashow, con diseños intercambiables y editables (fondos de color, degradado, imagen o video).
+- Biblioteca de canciones: se pega la letra tal como venga (aunque sea un solo bloque o traiga acordes) y Atril la organiza sola en versos y coros.
+- Pantalla de proyección en una ventana aparte para el datashow, con diseños intercambiables y editables: fondos de color, degradado, radial, patrón, animados (aurora, polvo de luz, brasas, olas, estrellas, rayos, nubes), o imagen y video propios con ajustes de desenfoque, brillo, color, zoom y tinte; se pueden crear diseños desde cero.
+- Imágenes y videos se proyectan como diapositivas (con pausa, reinicio y sonido) y se les puede poner el logo de la iglesia de varias formas.
 - Proyección en todas las pantallas que haya conectadas, con un rol distinto en cada una (principal, escenario para el pastor, solo canciones, solo versículos, avisos, logo fijo o apagada) y un diseño propio por pantalla.
 - Control remoto desde el celular por la red WiFi local.
 - Respaldo y restauración de canciones y cultos.

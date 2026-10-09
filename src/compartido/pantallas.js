@@ -21,6 +21,6 @@ export function cargaParaRol(rol, { modo, contenido, siguiente }) {
   if (modo !== 'contenido') return { frame: { modo, contenido: null } };
   if (rol === 'letras') return contenido && contenido.tipo === 'letra' ? { frame: { modo, contenido } } : NEGRO;
   if (rol === 'biblia') return contenido && contenido.tipo === 'versiculo' ? { frame: { modo, contenido } } : NEGRO;
-  if (rol === 'avisos') return contenido && ['texto', 'imagen', 'temporizador'].includes(contenido.tipo) ? { frame: { modo, contenido } } : LOGO;
+  if (rol === 'avisos') return contenido && ['texto', 'imagen', 'video', 'temporizador'].includes(contenido.tipo) ? { frame: { modo, contenido } } : LOGO;
   return { frame: { modo, contenido } };
 }

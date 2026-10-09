@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Modal } from './Modal';
-import { dividirLetra } from '../../compartido/letras.mjs';
+import { dividirLetra, organizarLetra } from '../../compartido/letras.mjs';
+import Icono from './Iconos';
 
 export default function EditorCancion({ id, tituloInicial = '', maxLineas, alGuardar, alBorrar, alCerrar }) {
   const [titulo, setTitulo] = useState(tituloInicial);
@@ -8,6 +9,8 @@ export default function EditorCancion({ id, tituloInicial = '', maxLineas, alGua
   const [letra, setLetra] = useState('');
   const [cargando, setCargando] = useState(!!id);
   const [confirmar, setConfirmar] = useState(false);
+  const [porEstrofa, setPorEstrofa] = useState(maxLineas);
+  const [deshacer, setDeshacer] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -19,6 +22,19 @@ export default function EditorCancion({ id, tituloInicial = '', maxLineas, alGua
 
   const secciones = useMemo(() => dividirLetra(letra, maxLineas), [letra, maxLineas]);
   const valido = titulo.trim() && letra.trim();
+
+  const organizar = () => {
+    setDeshacer(letra);
+    setLetra(organizarLetra(letra, porEstrofa));
+  };
+
+  const alPegar = (e) => {
+    const pegado = e.clipboardData.getData('text');
+    if (!pegado || letra.trim()) return;
+    e.preventDefault();
+    setDeshacer(pegado);
+    setLetra(organizarLetra(pegado, porEstrofa));
+  };
 
   const guardar = async () => {
     const nuevo = await window.atril.canciones.guardar({ id, titulo: titulo.trim(), autor: autor.trim(), letra });
@@ -47,9 +63,24 @@ export default function EditorCancion({ id, tituloInicial = '', maxLineas, alGua
             <label className="campo grande"><span className="campo-et">Título</span><input autoFocus={!id} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Nombre de la canción" /></label>
             <label className="campo"><span className="campo-et">Autor (opcional)</span><input value={autor} onChange={(e) => setAutor(e.target.value)} /></label>
           </div>
-          <label className="campo estirar">
+          <div className="letra-barra">
             <span className="campo-et">Letra</span>
-            <textarea value={letra} onChange={(e) => setLetra(e.target.value)} spellCheck={false} placeholder={'Pega aquí la letra.\n\nSepara cada estrofa con una línea en blanco.\nPuedes escribir [Coro] o [Verso 1] solo en una línea para nombrar la estrofa.'} />
+            <span className="relleno" />
+            <label className="por-estrofa">Líneas por estrofa
+              <select value={porEstrofa} onChange={(e) => setPorEstrofa(Number(e.target.value))}>
+                {[2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <button type="button" className="btn chico" disabled={!letra.trim()} onClick={organizar}><Icono n="culto" t={14} /> Organizar letra</button>
+          </div>
+          {deshacer !== null && (
+            <div className="aviso-letra">
+              <span>Letra organizada en estrofas: las que se repiten quedaron como coro y se quitaron los acordes. Revisa la vista de la derecha.</span>
+              <button type="button" className="btn chico" onClick={() => { setLetra(deshacer); setDeshacer(null); }}>Deshacer</button>
+            </div>
+          )}
+          <label className="campo estirar">
+            <textarea value={letra} onChange={(e) => { setLetra(e.target.value); setDeshacer(null); }} onPaste={alPegar} spellCheck={false} placeholder={'Pega aquí la letra tal como la tengas, aunque sea un solo bloque o traiga acordes: Atril la organiza sola en versos y coros.'} />
           </label>
         </div>
         <div className="editor-der">

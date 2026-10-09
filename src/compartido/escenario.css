@@ -58,3 +58,42 @@
 .st-sigue-cab .st-et { font-size: 26px; }
 .st-sigue-cab .st-ref { font-size: 30px; color: #b3a58d; }
 .st-vacio { color: #5e5240; }
+
+.esc-anim { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.esc-anim.quieto, .esc-anim.quieto * { animation-play-state: paused !important; }
+.an-blob { position: absolute; width: 1500px; height: 1500px; border-radius: 50%; will-change: transform; }
+.an-b1 { left: -300px; top: -500px; background: radial-gradient(circle, color-mix(in srgb, var(--c1) 80%, transparent) 0, transparent 62%); animation: an-deriva1 calc(46s * var(--vel)) ease-in-out infinite alternate; }
+.an-b2 { right: -400px; top: -100px; background: radial-gradient(circle, color-mix(in srgb, var(--c3) 62%, transparent) 0, transparent 60%); animation: an-deriva2 calc(58s * var(--vel)) ease-in-out infinite alternate; }
+.an-b3 { left: 100px; bottom: -800px; background: radial-gradient(circle, color-mix(in srgb, var(--c2) 85%, transparent) 0, transparent 62%); animation: an-deriva3 calc(52s * var(--vel)) ease-in-out infinite alternate; }
+@keyframes an-deriva1 { from { transform: translate(0, 0) scale(1); } to { transform: translate(560px, 380px) scale(1.25); } }
+@keyframes an-deriva2 { from { transform: translate(0, 0) scale(1.1); } to { transform: translate(-620px, 300px) scale(.85); } }
+@keyframes an-deriva3 { from { transform: translate(0, 0) scale(.9); } to { transform: translate(480px, -420px) scale(1.2); } }
+.an-polvo { position: absolute; bottom: -80px; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--c3) 95%, #fff) 0, color-mix(in srgb, var(--c3) 30%, transparent) 45%, transparent 70%); opacity: 0; animation: an-sube calc(var(--dur) * var(--vel)) linear infinite; animation-delay: calc(var(--ret) * var(--vel)); will-change: transform, opacity; }
+@keyframes an-sube { 0% { transform: translate(0, 0); opacity: 0; } 15% { opacity: var(--op); } 85% { opacity: var(--op); } 100% { transform: translate(var(--dx), -1250px); opacity: 0; } }
+.an-calor { position: absolute; left: 0; right: 0; bottom: 0; height: 55%; background: linear-gradient(0deg, color-mix(in srgb, var(--c3) 38%, transparent), transparent); animation: an-parpadeo calc(5s * var(--vel)) ease-in-out infinite alternate; }
+@keyframes an-parpadeo { from { opacity: .55; } to { opacity: 1; } }
+.an-brasa { position: absolute; bottom: -30px; border-radius: 50%; background: radial-gradient(circle, #fff1c2 0, var(--c3) 40%, transparent 72%); opacity: 0; animation: an-brasa calc(var(--dur) * var(--vel)) ease-out infinite; animation-delay: calc(var(--ret) * var(--vel)); will-change: transform, opacity; }
+@keyframes an-brasa { 0% { transform: translate(0, 0) scale(1); opacity: 0; } 12% { opacity: var(--op); } 100% { transform: translate(var(--dx), -1250px) scale(.25); opacity: 0; } }
+.an-cielo { position: absolute; inset: -10%; animation: an-gira calc(300s * var(--vel)) linear infinite; }
+@keyframes an-gira { to { transform: rotate(6deg) scale(1.04); } }
+.an-estrella { position: absolute; border-radius: 50%; background: #fff; box-shadow: 0 0 10px 2px color-mix(in srgb, var(--c3) 70%, transparent); animation: an-titila calc(var(--dur) * var(--vel)) ease-in-out infinite; animation-delay: calc(var(--ret) * var(--vel)); }
+@keyframes an-titila { 0%, 100% { opacity: .08; transform: scale(.7); } 50% { opacity: var(--op); transform: scale(1.15); } }
+.an-ola { position: absolute; left: 0; bottom: 0; width: 200%; height: 100%; will-change: transform; }
+.an-ola1 { fill: color-mix(in srgb, var(--c3) 26%, transparent); animation: an-ola calc(34s * var(--vel)) linear infinite; }
+.an-ola2 { fill: color-mix(in srgb, var(--c1) 40%, transparent); animation: an-ola calc(26s * var(--vel)) linear infinite reverse; }
+.an-ola3 { fill: color-mix(in srgb, var(--c2) 55%, #000 10%); animation: an-ola calc(19s * var(--vel)) linear infinite; }
+@keyframes an-ola { to { transform: translateX(-50%); } }
+.an-giro { position: absolute; left: 50%; top: 46%; width: 4200px; height: 4200px; margin: -2100px 0 0 -2100px; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c3) 24%, transparent) 0 6deg, transparent 6deg 22deg); -webkit-mask-image: radial-gradient(circle, #000 0, transparent 62%); mask-image: radial-gradient(circle, #000 0, transparent 62%); animation: an-vuelta calc(180s * var(--vel)) linear infinite; will-change: transform; }
+@keyframes an-vuelta { to { transform: rotate(360deg); } }
+.an-resplandor { position: absolute; inset: 0; background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--c3) 30%, transparent) 0, transparent 52%); animation: an-parpadeo calc(9s * var(--vel)) ease-in-out infinite alternate; }
+.an-nube { position: absolute; left: -1200px; border-radius: 50%; background: radial-gradient(ellipse, rgba(255, 255, 255, var(--op)) 0, transparent 68%); animation: an-pasa calc(var(--dur) * var(--vel)) linear infinite; animation-delay: calc(var(--ret) * var(--vel)); will-change: transform; }
+@keyframes an-pasa { from { transform: translateX(0); } to { transform: translateX(3400px); } }
+
+.esc-patron { position: absolute; inset: 0; }
+
+.esc-marca-centro { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); height: auto; pointer-events: none; filter: drop-shadow(0 6px 30px rgba(0, 0, 0, .5)); }
+.esc-banda { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 34px; padding: 26px 80px 26px 64px; background: linear-gradient(0deg, rgba(8, 6, 4, .92), rgba(8, 6, 4, .62) 62%, transparent); }
+.esc-banda img { flex: none; filter: drop-shadow(0 4px 14px rgba(0, 0, 0, .5)); }
+.esc-banda-texto { display: flex; flex-direction: column; gap: 4px; }
+.esc-banda-nombre { font: 600 58px/1.05 'Fraunces Variable', Georgia, serif; color: #f6eddc; }
+.esc-banda-suf { font: 700 30px 'Instrument Sans Variable', sans-serif; letter-spacing: .4em; color: #d8a24a; }

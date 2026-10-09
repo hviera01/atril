@@ -52,7 +52,7 @@ export function PanelCanciones({ destinoTitulo, version, focoId, alVistaPrevia, 
   );
 }
 
-export function PanelMedios({ destinoTitulo, version, focoId, alVistaPrevia, alAgregar, alCambio }) {
+export function PanelMedios({ destinoTitulo, version, focoId, alVistaPrevia, alAgregar, alUsarFondo, alCambio }) {
   const [medios, setMedios] = useState([]);
 
   const cargar = async () => setMedios(await window.atril.medios.listar());
@@ -75,17 +75,18 @@ export function PanelMedios({ destinoTitulo, version, focoId, alVistaPrevia, alA
         <div className="biblio-botones">
           <button className="btn btn-lleno" onClick={importar}><Icono n="subir" t={16} /> Agregar archivos</button>
         </div>
-        <p className="tenue chico-texto">Imágenes para proyectar. Imágenes y videos también sirven como fondo en Diseño.</p>
+        <p className="tenue chico-texto">Imágenes y videos para proyectar. También sirven de fondo: toca el pincel en cualquiera.</p>
       </div>
       <div className="medios-grilla">
         {medios.length === 0 && <div className="vacio-panel"><p>Sin archivos todavía.</p></div>}
         {medios.map((m) => (
-          <div key={m.archivo} className={`medio${focoId === `tmp-imagen-${m.archivo}` ? ' enfocado' : ''}`} onClick={() => m.tipo === 'imagen' && alVistaPrevia(m)} onDoubleClick={() => m.tipo === 'imagen' && alAgregar(m)}>
+          <div key={m.archivo} className={`medio${focoId === `tmp-${m.tipo}-${m.archivo}` ? ' enfocado' : ''}`} onClick={() => alVistaPrevia(m)} onDoubleClick={() => alAgregar(m)}>
             {m.tipo === 'imagen' ? <img src={m.url} alt="" loading="lazy" /> : <video src={m.url} muted preload="metadata" />}
             {m.tipo === 'video' ? <span className="medio-video"><Icono n="video" t={14} /></span> : null}
             <span className="medio-nombre">{m.nombre}</span>
             <span className="medio-acciones">
-              {m.tipo === 'imagen' && <button className="icono-btn chico" title="Agregar al culto" onClick={(e) => { e.stopPropagation(); alAgregar(m); }}><Icono n="mas" t={16} /></button>}
+              <button className="icono-btn chico" title="Usar como fondo de la proyección" onClick={(e) => { e.stopPropagation(); alUsarFondo(m); }}><Icono n="paleta" t={15} /></button>
+              <button className="icono-btn chico" title="Agregar al culto" onClick={(e) => { e.stopPropagation(); alAgregar(m); }}><Icono n="mas" t={16} /></button>
               <button className="icono-btn chico" title="Eliminar" onClick={(e) => { e.stopPropagation(); borrar(m); }}><Icono n="borrar" t={15} /></button>
             </span>
           </div>

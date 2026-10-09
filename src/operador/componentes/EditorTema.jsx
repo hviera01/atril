@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Campo, Segmentos, Interruptor } from './Modal';
 import Icono from './Iconos';
 import Escenario from '../../compartido/Escenario';
-import { FUENTES, ESTILOS, TEMAS_INTEGRADOS, completarTema, temaNuevoDesde } from '../../compartido/temas';
+import { FUENTES, ESTILOS, TIPOS_FONDO, PATRONES, ANIMACIONES, TEMAS_INTEGRADOS, completarTema, temaNuevoDesde, temaEnBlanco } from '../../compartido/temas';
 
 const MUESTRA = {
   modo: 'contenido',
@@ -52,10 +52,36 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
 
   const integrado = !!editando.integrado;
   const cambiar = (grupo, campo, valor) => {
-    if (integrado) return;
-    const nuevo = grupo ? { ...editando, [grupo]: { ...editando[grupo], [campo]: valor } } : { ...editando, [campo]: valor };
+    let base = editando;
+    let lista2 = lista;
+    if (integrado) {
+      base = temaNuevoDesde(editando, `${editando.nombre} (propio)`);
+      lista2 = [...lista, base];
+      alElegir(base.id);
+    }
+    const nuevo = grupo ? { ...base, [grupo]: { ...base[grupo], [campo]: valor } } : { ...base, [campo]: valor };
     setEditando(nuevo);
-    setLista((l) => l.map((t) => (t.id === nuevo.id ? nuevo : t)));
+    setLista(lista2.map((t) => (t.id === nuevo.id ? nuevo : t)));
+  };
+
+  const cambiarVarios = (cambios) => {
+    let base = editando;
+    let lista2 = lista;
+    if (integrado) {
+      base = temaNuevoDesde(editando, `${editando.nombre} (propio)`);
+      lista2 = [...lista, base];
+      alElegir(base.id);
+    }
+    const nuevo = { ...base, fondo: { ...base.fondo, ...cambios } };
+    setEditando(nuevo);
+    setLista(lista2.map((t) => (t.id === nuevo.id ? nuevo : t)));
+  };
+
+  const enBlanco = () => {
+    const nuevo = temaEnBlanco();
+    setLista((l) => [...l, nuevo]);
+    setEditando(nuevo);
+    alElegir(nuevo.id);
   };
 
   const elegir = (t) => {
@@ -93,7 +119,7 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
       titulo="Diseños de proyección"
       ancho={1180}
       alCerrar={() => { alGuardar(lista); alCerrar(); }}
-      pie={(<><span className="relleno" />{integrado ? <span className="tenue">Los diseños de fábrica no se modifican: duplica uno para personalizarlo.</span> : null}<button className="btn btn-lleno" onClick={() => { alGuardar(lista); alCerrar(); }}>Listo</button></>)}
+      pie={(<><span className="relleno" />{integrado ? <span className="tenue">Si cambias algo de un diseño de fábrica, se guarda como copia propia.</span> : null}<button className="btn btn-lleno" onClick={() => { alGuardar(lista); alCerrar(); }}>Listo</button></>)}
     >
       <div className="editor-tema">
         <div className="tema-lista">
@@ -104,6 +130,7 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
               {!t.integrado && <small>propio</small>}
             </button>
           ))}
+          <button className="btn btn-lleno ancho" onClick={enBlanco}><Icono n="mas" t={16} /> Nuevo desde cero</button>
           <button className="btn ancho" onClick={duplicar}><Icono n="duplicar" t={16} /> Duplicar este diseño</button>
           {!integrado && <button className="btn ancho" onClick={borrar}><Icono n="borrar" t={16} /> Eliminar</button>}
         </div>
@@ -113,16 +140,59 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
             <Escenario frame={muestraCancion ? MUESTRA_CANCION : MUESTRA} tema={editando} />
           </div>
           <Segmentos valor={muestraCancion ? 'c' : 'v'} opciones={[{ v: 'v', t: 'Probar con versículo' }, { v: 'c', t: 'Probar con canción' }]} alCambiar={(v) => setMuestraCancion(v === 'c')} />
-          {!integrado && (
+          {(
             <Campo etiqueta="Nombre del diseño"><input value={editando.nombre} onChange={(e) => cambiar(null, 'nombre', e.target.value)} /></Campo>
           )}
         </div>
 
-        <fieldset className="tema-controles" disabled={integrado}>
+        <fieldset className="tema-controles">
           <h3>Fondo</h3>
-          <Segmentos valor={fondo.tipo} opciones={[{ v: 'color', t: 'Color' }, { v: 'degradado', t: 'Degradado' }, { v: 'imagen', t: 'Imagen' }, { v: 'video', t: 'Video' }]} alCambiar={(v) => cambiar('fondo', 'tipo', v)} />
-          {(fondo.tipo === 'color' || fondo.tipo === 'degradado') && <Color etiqueta={fondo.tipo === 'color' ? 'Color' : 'Color de arriba'} valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />}
-          {fondo.tipo === 'degradado' && <><Color etiqueta="Color de abajo" valor={fondo.color2} alCambiar={(v) => cambiar('fondo', 'color2', v)} /><Rango etiqueta="Ángulo" valor={fondo.angulo} min={0} max={360} alCambiar={(v) => cambiar('fondo', 'angulo', v)} sufijo="°" /></>}
+          <Campo etiqueta="Tipo de fondo">
+            <select value={fondo.tipo} onChange={(e) => cambiar('fondo', 'tipo', e.target.value)}>
+              {TIPOS_FONDO.map((x) => <option key={x.v} value={x.v}>{x.t}</option>)}
+            </select>
+          </Campo>
+          {fondo.tipo === 'color' && <Color etiqueta="Color" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />}
+          {fondo.tipo === 'degradado' && (
+            <>
+              <Color etiqueta="Color de arriba" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />
+              <Color etiqueta="Color de abajo" valor={fondo.color2} alCambiar={(v) => cambiar('fondo', 'color2', v)} />
+              <Rango etiqueta="Ángulo" valor={fondo.angulo} min={0} max={360} alCambiar={(v) => cambiar('fondo', 'angulo', v)} sufijo="°" />
+            </>
+          )}
+          {fondo.tipo === 'radial' && (
+            <>
+              <Color etiqueta="Color del centro" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />
+              <Color etiqueta="Color de los bordes" valor={fondo.color2} alCambiar={(v) => cambiar('fondo', 'color2', v)} />
+            </>
+          )}
+          {fondo.tipo === 'patron' && (
+            <>
+              <Color etiqueta="Color de base" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />
+              <Color etiqueta="Segundo color de base" valor={fondo.color2} alCambiar={(v) => cambiar('fondo', 'color2', v)} />
+              <Campo etiqueta="Patrón">
+                <select value={fondo.patron} onChange={(e) => cambiar('fondo', 'patron', e.target.value)}>
+                  {PATRONES.map((x) => <option key={x.v} value={x.v}>{x.t}</option>)}
+                </select>
+              </Campo>
+              <Color etiqueta="Color del patrón" valor={fondo.color3} alCambiar={(v) => cambiar('fondo', 'color3', v)} />
+              <Rango etiqueta="Intensidad del patrón" valor={fondo.patronOpacidad} min={0.03} max={0.6} paso={0.01} alCambiar={(v) => cambiar('fondo', 'patronOpacidad', v)} />
+            </>
+          )}
+          {fondo.tipo === 'animado' && (
+            <>
+              <Campo etiqueta="Animación">
+                <select value={fondo.animacion} onChange={(e) => cambiar('fondo', 'animacion', e.target.value)}>
+                  {ANIMACIONES.map((x) => <option key={x.v} value={x.v}>{x.t}</option>)}
+                </select>
+              </Campo>
+              <Color etiqueta="Color principal" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />
+              <Color etiqueta="Color secundario" valor={fondo.color2} alCambiar={(v) => cambiar('fondo', 'color2', v)} />
+              <Color etiqueta="Color de la luz" valor={fondo.color3} alCambiar={(v) => cambiar('fondo', 'color3', v)} />
+              <Rango etiqueta="Velocidad" valor={fondo.velocidad} min={0.25} max={3} paso={0.05} alCambiar={(v) => cambiar('fondo', 'velocidad', v)} sufijo="×" />
+              <p className="tenue chico-texto">Movimiento suave dibujado por la app: no usa videos ni pesa nada.</p>
+            </>
+          )}
           {(fondo.tipo === 'imagen' || fondo.tipo === 'video') && (
             <>
               <div className="medios-mini">
@@ -131,9 +201,20 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
                     {m.tipo === 'imagen' ? <img src={m.url} alt="" /> : <video src={m.url} muted preload="metadata" />}
                   </button>
                 ))}
-                <button className="medios-mas" onClick={agregarMedio}><Icono n="mas" /></button>
+                <button className="medios-mas" onClick={agregarMedio} title="Agregar desde tu computadora"><Icono n="mas" /></button>
               </div>
+              {!medios.some((m) => m.tipo === fondo.tipo) && <p className="tenue chico-texto">Aún no hay {fondo.tipo === 'imagen' ? 'imágenes' : 'videos'}. Agrega uno con el botón +.</p>}
+              <Color etiqueta="Color de respaldo" valor={fondo.color} alCambiar={(v) => cambiar('fondo', 'color', v)} />
               <Rango etiqueta="Oscurecer" valor={fondo.oscurecer} min={0} max={0.9} paso={0.05} alCambiar={(v) => cambiar('fondo', 'oscurecer', v)} />
+              <Rango etiqueta="Desenfoque" valor={fondo.desenfoque} min={0} max={24} alCambiar={(v) => cambiar('fondo', 'desenfoque', v)} sufijo=" px" />
+              <Rango etiqueta="Brillo" valor={fondo.brillo} min={40} max={170} alCambiar={(v) => cambiar('fondo', 'brillo', v)} sufijo="%" />
+              <Rango etiqueta="Color (0 = blanco y negro)" valor={fondo.saturacion} min={0} max={200} alCambiar={(v) => cambiar('fondo', 'saturacion', v)} sufijo="%" />
+              <Rango etiqueta="Acercar" valor={fondo.zoom} min={100} max={250} alCambiar={(v) => cambiar('fondo', 'zoom', v)} sufijo="%" />
+              <Rango etiqueta="Mover a los lados" valor={fondo.posX} min={0} max={100} alCambiar={(v) => cambiar('fondo', 'posX', v)} sufijo="%" />
+              <Rango etiqueta="Mover arriba y abajo" valor={fondo.posY} min={0} max={100} alCambiar={(v) => cambiar('fondo', 'posY', v)} sufijo="%" />
+              <Color etiqueta="Tinte de color" valor={fondo.tinte} alCambiar={(v) => cambiar('fondo', 'tinte', v)} />
+              <Rango etiqueta="Intensidad del tinte" valor={fondo.tinteOpacidad} min={0} max={0.8} paso={0.02} alCambiar={(v) => cambiar('fondo', 'tinteOpacidad', v)} />
+              <button type="button" className="btn chico" onClick={() => cambiarVarios({ oscurecer: 0.4, desenfoque: 0, brillo: 100, saturacion: 100, zoom: 100, posX: 50, posY: 50, tinteOpacidad: 0 })}>Restablecer ajustes</button>
             </>
           )}
 

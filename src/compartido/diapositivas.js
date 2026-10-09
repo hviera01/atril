@@ -68,7 +68,10 @@ export async function construirDiapositivas(el, ctx) {
     }));
   }
   if (el.tipo === 'imagen') {
-    return [{ etiqueta: '1', resumen: el.nombre || 'Imagen', imagen: el.src, contenido: { tipo: 'imagen', src: el.src } }];
+    return [{ etiqueta: '1', resumen: el.nombre || 'Imagen', imagen: el.src, contenido: { tipo: 'imagen', src: el.src, logo: el.logo } }];
+  }
+  if (el.tipo === 'video') {
+    return [{ etiqueta: '1', resumen: el.nombre || 'Video', imagen: el.src, esVideo: true, contenido: { tipo: 'video', src: el.src, logo: el.logo, bucle: !!el.bucle } }];
   }
   if (el.tipo === 'texto') {
     const partes = dividirTexto(el.cuerpo);
@@ -90,6 +93,7 @@ export function resumenElemento(el, libros, cancionTitulos) {
   }
   if (el.tipo === 'cancion') return { titulo: el.titulo || cancionTitulos[el.cancionId] || 'Canción', sub: 'Canción' };
   if (el.tipo === 'imagen') return { titulo: el.nombre || 'Imagen', sub: 'Imagen' };
+  if (el.tipo === 'video') return { titulo: el.nombre || 'Video', sub: 'Video' };
   if (el.tipo === 'texto') return { titulo: el.titulo || 'Texto', sub: 'Anuncio o texto' };
   if (el.tipo === 'temporizador') return { titulo: el.titulo || 'Cuenta regresiva', sub: `${el.minutos} min` };
   if (el.tipo === 'seccion') return { titulo: el.titulo, sub: '' };

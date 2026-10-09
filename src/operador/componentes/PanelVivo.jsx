@@ -25,7 +25,7 @@ function titulo(contenido, vivo) {
   return '';
 }
 
-export default function PanelVivo({ modo, contenido, tema, vivo, siguiente, temas, temaId, proy, esVerso, acciones }) {
+export default function PanelVivo({ modo, contenido, tema, vivo, siguiente, temas, temaId, proy, esVerso, videoCtl, acciones }) {
   const activas = proy ? proy.pantallas.filter((p) => p.activa).length : 0;
   const enVivo = modo === 'contenido' && !!contenido;
   const etiquetaModo = modo === 'negro' ? 'Pantalla en negro' : modo === 'logo' ? 'Logo de la iglesia' : enVivo ? 'En vivo' : 'Sin proyectar';
@@ -59,13 +59,21 @@ export default function PanelVivo({ modo, contenido, tema, vivo, siguiente, tema
       )}
 
       <div className={`pant-marco${modo === 'negro' ? ' negro' : enVivo ? ' en-vivo' : ''}`}>
-        <Escenario frame={{ modo, contenido }} tema={tema} />
+        <Escenario frame={{ modo, contenido, video: videoCtl }} tema={tema} silenciar />
         <div className="pant-pie">
           <span className="pant-estado"><i />{etiquetaModo}</span>
           <span className="pant-titulo">{modo === 'contenido' ? titulo(contenido, vivo) : ''}</span>
           <span className="pant-prog">{progreso}</span>
         </div>
       </div>
+
+      {contenido && contenido.tipo === 'video' && modo === 'contenido' && (
+        <div className="video-ctl">
+          <button className="btn" onClick={acciones.videoPausa}><Icono n={videoCtl.pausa ? 'play' : 'pausa'} t={15} /> {videoCtl.pausa ? 'Reproducir' : 'Pausar'}</button>
+          <button className="btn" onClick={acciones.videoReiniciar}><Icono n="actualizar" t={15} /> Reiniciar</button>
+          <button className={`btn${videoCtl.silencio ? ' btn-oro' : ''}`} onClick={acciones.videoSilencio}><Icono n={videoCtl.silencio ? 'silencio' : 'sonido'} t={16} /> {videoCtl.silencio ? 'Sin sonido' : 'Sonido'}</button>
+        </div>
+      )}
 
       <div className="mandos">
         <button className="mando" onClick={acciones.anterior} title="Anterior (←)"><Icono n="anterior" t={22} /><span>Anterior</span></button>

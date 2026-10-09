@@ -24,6 +24,9 @@ const TRAZOS = {
   video: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></>,
   actualizar: <path d="M20 12a8 8 0 10-2.5 5.8M20 5v5h-5" />,
   chevron: <path d="M7 10l5 5 5-5" />,
+  pausa: <path d="M8 5v14M16 5v14" />,
+  sonido: <><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M16 9a4 4 0 010 6M18.5 6.5a8 8 0 010 11" /></>,
+  silencio: <><path d="M4 9v6h4l5 4V5L8 9z" /><path d="M17 9l5 6M22 9l-5 6" /></>,
 };
 
 export default function Icono({ n, t = 18, relleno = false, className = '' }) {

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { fuenteCss, completarTema } from './temas';
 import { IGLESIA } from './iglesia';
 import logoRedondo from './logo-redondo.png';
+import logoIglesia from './logo-iglesia.png';
 import EstiloFondo from './Estilos';
+import AnimadoFondo from './FondosAnimados';
 import './escenario.css';
 
 const ANCHO = 1920;
@@ -223,7 +225,64 @@ function ContenidoTexto({ c, t }) {
   );
 }
 
-function Contenido({ c, t }) {
+const POS = {
+  'sup-izq': { left: 56, top: 48 },
+  'sup-centro': { left: '50%', top: 48, transform: 'translateX(-50%)' },
+  'sup-der': { right: 56, top: 48 },
+  'inf-izq': { left: 56, bottom: 48 },
+  'inf-centro': { left: '50%', bottom: 48, transform: 'translateX(-50%)' },
+  'inf-der': { right: 56, bottom: 48 },
+};
+
+function LogoSobre({ cfg }) {
+  if (!cfg || !cfg.forma || cfg.forma === 'ninguno') return null;
+  const tam = cfg.tam || 150;
+  const opacidad = cfg.opacidad === undefined ? 0.95 : cfg.opacidad;
+  if (cfg.forma === 'banda') {
+    return (
+      <div className="esc-banda" style={{ opacity: opacidad }}>
+        <img src={logoRedondo} alt="" style={{ width: tam, height: tam }} />
+        <div className="esc-banda-texto">
+          <span className="esc-banda-nombre">{IGLESIA.nombre}</span>
+          <span className="esc-banda-suf">{IGLESIA.sufijo}</span>
+        </div>
+      </div>
+    );
+  }
+  if (cfg.forma === 'centro') {
+    return <img className="esc-marca-centro" src={logoIglesia} alt="" style={{ width: tam * 5, opacity: opacidad * 0.5 }} />;
+  }
+  const simple = cfg.forma === 'simple';
+  return (
+    <img
+      className="esc-marca"
+      src={simple ? logoIglesia : logoRedondo}
+      alt=""
+      style={{ width: tam, height: simple ? 'auto' : tam, opacity: opacidad, filter: simple ? 'drop-shadow(0 4px 14px rgba(0,0,0,.6))' : 'drop-shadow(0 6px 18px rgba(0,0,0,.4))', ...(POS[cfg.esquina] || POS['inf-der']) }}
+    />
+  );
+}
+
+function VideoPantalla({ c, ctx }) {
+  const ref = useRef(null);
+  const control = ctx.control || {};
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    if (ctx.estatico || control.pausa) v.pause();
+    else v.play().catch(() => {});
+  }, [control.pausa, ctx.estatico]);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || ctx.estatico) return;
+    v.currentTime = 0;
+    if (!control.pausa) v.play().catch(() => {});
+  }, [control.reinicio]);
+  const mudo = ctx.estatico || ctx.silenciar || !!control.silencio;
+  return <video ref={ref} className="esc-imagen" src={ctx.estatico ? `${c.src}#t=0.1` : c.src} autoPlay={!ctx.estatico} loop={!!c.bucle} muted={mudo} playsInline preload="auto" />;
+}
+
+function Contenido({ c, t, ctx }) {
   if (c.tipo === 'vacio') return null;
   if (c.tipo === 'logo') {
     return (
@@ -234,36 +293,59 @@ function Contenido({ c, t }) {
       </div>
     );
   }
-  if (c.tipo === 'imagen') return <img className="esc-imagen" src={c.src} alt="" />;
+  if (c.tipo === 'imagen') return <><img className="esc-imagen" src={c.src} alt="" /><LogoSobre cfg={c.logo} /></>;
+  if (c.tipo === 'video') return <><VideoPantalla c={c} ctx={ctx} /><LogoSobre cfg={c.logo} /></>;
   if (c.tipo === 'temporizador') return <Cuenta c={c} t={t} />;
   return <ContenidoTexto c={c} t={t} />;
 }
 
-function Fondo({ t, estatico }) {
-  const f = t.fondo;
-  if (f.tipo === 'imagen' && f.medio) {
-    return (
-      <div className="esc-fondo">
-        <img src={f.medio} alt="" />
-        <div className="esc-velo" style={{ opacity: f.oscurecer }} />
-      </div>
-    );
-  }
-  if (f.tipo === 'video' && f.medio && !estatico) {
-    return (
-      <div className="esc-fondo">
-        <video src={f.medio} autoPlay loop muted playsInline />
-        <div className="esc-velo" style={{ opacity: f.oscurecer }} />
-      </div>
-    );
-  }
-  const fondo = f.tipo === 'color' || f.tipo === 'video' || f.tipo === 'imagen'
-    ? f.color
-    : `linear-gradient(${f.angulo}deg, ${f.color}, ${f.color2})`;
-  return <div className="esc-fondo" style={{ background: fondo }} />;
+const RUIDO = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .6 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>\")";
+
+function patronCss(f) {
+  const c = f.color3;
+  if (f.patron === 'diagonal') return `repeating-linear-gradient(45deg, ${c} 0 2px, transparent 2px 26px)`;
+  if (f.patron === 'puntos') return `radial-gradient(${c} 2.6px, transparent 3.2px) 0 0 / 34px 34px`;
+  if (f.patron === 'cuadricula') return `linear-gradient(${c} 1.5px, transparent 1.5px) 0 0 / 48px 48px, linear-gradient(90deg, ${c} 1.5px, transparent 1.5px) 0 0 / 48px 48px`;
+  if (f.patron === 'ruido') return RUIDO;
+  return `repeating-linear-gradient(0deg, ${c} 0 2px, transparent 2px 28px)`;
 }
 
-export default function Escenario({ frame, tema, estatico = false }) {
+function colorBase(f) {
+  if (f.tipo === 'radial') return `radial-gradient(circle at 50% 42%, ${f.color}, ${f.color2} 78%)`;
+  if (f.tipo === 'color' || f.tipo === 'imagen' || f.tipo === 'video') return f.color;
+  return `linear-gradient(${f.angulo}deg, ${f.color}, ${f.color2})`;
+}
+
+function Fondo({ t, estatico }) {
+  const f = t.fondo;
+  if ((f.tipo === 'imagen' || f.tipo === 'video') && f.medio) {
+    const estilo = {
+      filter: `blur(${f.desenfoque}px) brightness(${f.brillo}%) saturate(${f.saturacion}%)`,
+      transform: `scale(${Math.max(f.zoom / 100, 1 + f.desenfoque / 140)})`,
+      objectPosition: `${f.posX}% ${f.posY}%`,
+    };
+    return (
+      <div className="esc-fondo" style={{ background: f.color }}>
+        {f.tipo === 'imagen'
+          ? <img src={f.medio} alt="" style={estilo} />
+          : estatico
+            ? <video src={`${f.medio}#t=0.1`} muted preload="metadata" style={estilo} />
+            : <video src={f.medio} autoPlay loop muted playsInline style={estilo} />}
+        {f.tinteOpacidad > 0 && <div className="esc-velo" style={{ background: f.tinte, opacity: f.tinteOpacidad }} />}
+        <div className="esc-velo" style={{ opacity: f.oscurecer }} />
+      </div>
+    );
+  }
+  return (
+    <div className="esc-fondo" style={{ background: colorBase(f) }}>
+      {f.tipo === 'patron' && <div className="esc-patron" style={{ background: patronCss(f), opacity: f.patronOpacidad }} />}
+      {f.tipo === 'animado' && <AnimadoFondo f={f} estatico={estatico} />}
+    </div>
+  );
+}
+
+export default function Escenario({ frame, tema, estatico = false, silenciar = false }) {
+  const ctx = { control: frame && frame.video, silenciar, estatico };
   const raiz = useRef(null);
   const [escala, setEscala] = useState(0.3);
   const t = completarTema(tema);
@@ -303,7 +385,7 @@ export default function Escenario({ frame, tema, estatico = false }) {
         <EstiloFondo estilo={t.estilo} t={t} visible={TIPOS_TEXTO.includes(efectivo.tipo)} />
         {capas.map((x) => (
           <div key={x.id} className={`esc-capa${x.sale ? ' sale' : ''}`}>
-            <Contenido c={x.c} t={t} />
+            <Contenido c={x.c} t={t} ctx={ctx} />
           </div>
         ))}
         {marca && <img className="esc-marca" src={logoRedondo} alt="" style={{ width: t.marca.tam, height: t.marca.tam, opacity: t.marca.opacidad, ...esquina }} />}

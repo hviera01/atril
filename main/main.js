@@ -84,14 +84,11 @@ function registrarIpc() {
       filters: [{ name: 'Letras de canciones', extensions: ['txt'] }],
       properties: ['openFile', 'multiSelections'],
     });
-    if (r.canceled) return 0;
-    let n = 0;
-    for (const f of r.filePaths) {
-      const letra = fs.readFileSync(f, 'utf8').replace(/^﻿/, '');
-      const titulo = path.basename(f, path.extname(f)).trim();
-      if (titulo && letra.trim()) { datos.guardarCancion({ titulo, letra }); n++; }
-    }
-    return n;
+    if (r.canceled) return [];
+    return r.filePaths.map((f) => ({
+      titulo: path.basename(f, path.extname(f)).trim(),
+      letra: fs.readFileSync(f, 'utf8').replace(/^\uFEFF/, ''),
+    })).filter((a) => a.titulo && a.letra.trim());
   });
 
   manejar('servicios:listar', () => datos.listarServicios());

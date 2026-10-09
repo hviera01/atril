@@ -176,7 +176,7 @@ const P = {
   play: '<path d="M8 5l11 7-11 7z" fill="currentColor" stroke="none"/>',
 };
 const ico = (n, t = 22) => `<svg width="${t}" height="${t}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n]}</svg>`;
-const ICONO_TIPO = { biblia: 'biblia', cancion: 'cancion', imagen: 'imagen', texto: 'texto', temporizador: 'reloj' };
+const ICONO_TIPO = { biblia: 'biblia', cancion: 'cancion', imagen: 'imagen', video: 'imagen', texto: 'texto', temporizador: 'reloj' };
 
 const enviar = (o) => { vibrar(); return fetch('/cmd?k=' + k, { method: 'POST', body: JSON.stringify(o) }); };
 const pedir = async (ruta) => (await fetch(ruta + (ruta.includes('?') ? '&' : '?') + 'k=' + k)).json();

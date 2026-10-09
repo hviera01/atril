@@ -24,6 +24,7 @@ header b{font:700 20px Georgia,serif;letter-spacing:.02em}
 .mandos button:active{transform:scale(.98);filter:brightness(1.15)}
 .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 16px 0}
 .mini button{border:1px solid var(--linea);background:transparent;color:var(--papel);padding:11px 4px;border-radius:4px;font:600 14px "Segoe UI",sans-serif}
+.mini.dos{grid-template-columns:1fr 1fr}
 .mini button.on{background:var(--oro);color:#1b1408;border-color:var(--oro)}
 nav{display:flex;margin:14px 16px 0;border-bottom:1px solid var(--linea)}
 nav button{flex:1;background:none;border:0;color:var(--apagado);padding:10px;font:600 15px "Segoe UI",sans-serif;border-bottom:3px solid transparent}
@@ -52,6 +53,12 @@ h4{margin:16px 0 6px;font:600 12px "Segoe UI";letter-spacing:.1em;text-transform
   <button id="logo">Logo</button>
   <button id="limpiar">Limpiar</button>
 </div>
+<div class="mini dos">
+  <button id="va">↑ Versículo ant.</button>
+  <button id="vs">↓ Versículo sig.</button>
+  <button id="ea">◀ Elemento ant.</button>
+  <button id="es">Elemento sig. ▶</button>
+</div>
 <nav><button id="tb" class="on">Buscar</button><button id="tc">Culto</button></nav>
 <main>
   <section id="pb"><input id="q" placeholder="Juan 3:16 · salmo 23 · amor de Dios" autocomplete="off" autocapitalize="off"><div class="lista" id="res"></div></section>
@@ -67,6 +74,10 @@ $('ant').onclick = () => enviar({ tipo: 'anterior' });
 $('negro').onclick = () => enviar({ tipo: 'negro' });
 $('logo').onclick = () => enviar({ tipo: 'logo' });
 $('limpiar').onclick = () => enviar({ tipo: 'limpiar' });
+$('va').onclick = () => enviar({ tipo: 'versoAnt' });
+$('vs').onclick = () => enviar({ tipo: 'versoSig' });
+$('ea').onclick = () => enviar({ tipo: 'elementoAnt' });
+$('es').onclick = () => enviar({ tipo: 'elementoSig' });
 $('tb').onclick = () => pestana('b');
 $('tc').onclick = () => pestana('c');
 function pestana(p) {

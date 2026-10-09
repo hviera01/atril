@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Icono from './Iconos';
 import { resumenElemento } from '../../compartido/diapositivas';
+import { etiquetaFecha } from '../../compartido/fechas';
 
 const ICONO_TIPO = { biblia: 'biblia', cancion: 'cancion', imagen: 'imagen', texto: 'texto', temporizador: 'reloj', seccion: 'seccion' };
 
@@ -13,7 +14,8 @@ const OPCIONES_AGREGAR = [
   { tipo: 'seccion', t: 'Sección', d: 'Separador: Alabanza, Predicación…' },
 ];
 
-export default function PanelCulto({ servicios, servicioId, elementos, foco, vivoId, libros, titulos, acciones }) {
+export default function PanelCulto({ servicios, servicioId, elementos, foco, vivoId, libros, titulos, destino, acciones }) {
+  const actual = servicios.find((s) => s.id === servicioId);
   const [menu, setMenu] = useState(false);
   const [arrastrando, setArrastrando] = useState(null);
   const [sobre, setSobre] = useState(null);
@@ -35,12 +37,16 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
   return (
     <div className="culto">
       <div className="culto-cab">
-        <div className="servicio-fila">
-          <select className="servicio-sel" value={servicioId || ''} onChange={(e) => acciones.elegirServicio(Number(e.target.value))}>
-            {servicios.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-          </select>
+        <button className="culto-actual" onClick={acciones.historial} title="Ver el historial de cultos">
+          <span className="culto-actual-texto">
+            <span className="culto-fecha">{actual ? etiquetaFecha(actual.fecha) : ''}</span>
+            <span className="culto-nombre">{actual ? actual.nombre : ''}</span>
+          </span>
+          <Icono n="chevron" t={18} />
+        </button>
+        <div className="culto-botones">
           <button className="icono-btn" title="Nuevo culto" onClick={acciones.nuevoServicio}><Icono n="mas" /></button>
-          <button className="icono-btn" title="Cambiar nombre" onClick={acciones.renombrarServicio}><Icono n="editar" /></button>
+          <button className="icono-btn" title="Nombre y fecha" onClick={acciones.editarServicio}><Icono n="editar" /></button>
           <button className="icono-btn" title="Duplicar culto" onClick={acciones.duplicarServicio}><Icono n="duplicar" /></button>
           <button className="icono-btn" title="Eliminar culto" onClick={acciones.borrarServicio}><Icono n="borrar" /></button>
         </div>
@@ -61,7 +67,7 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
             return (
               <div
                 key={el.id}
-                className={`seccion-item${sobre === i ? ' sobre' : ''}`}
+                className={`seccion-item${sobre === i ? ' sobre' : ''}${destino && destino.id === el.id ? ' destino' : ''}`}
                 draggable
                 onDragStart={() => setArrastrando(i)}
                 onDragOver={(e) => { e.preventDefault(); setSobre(i); }}
@@ -70,6 +76,7 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
               >
                 <span className="seccion-nombre">{r.titulo}</span>
                 <span className="item-acciones">
+                  <button className="icono-btn chico" title="Agregar dentro de esta sección" onClick={() => { acciones.fijarDestino(el.id); setMenu(true); }}><Icono n="mas" t={16} /></button>
                   <button className="icono-btn chico" title="Cambiar nombre" onClick={() => acciones.editarElemento(el)}><Icono n="editar" t={15} /></button>
                   <button className="icono-btn chico" title="Quitar" onClick={() => acciones.quitar(el.id)}><Icono n="cerrar" t={15} /></button>
                 </span>
@@ -114,6 +121,12 @@ export default function PanelCulto({ servicios, servicioId, elementos, foco, viv
                 <span><b>{o.t}</b><small>{o.d}</small></span>
               </button>
             ))}
+          </div>
+        )}
+        {destino && (
+          <div className="destino-chip">
+            <span>Agregando en <b>{destino.titulo}</b></span>
+            <button className="icono-btn chico" title="Volver a agregar al final" onClick={() => acciones.fijarDestino(null)}><Icono n="cerrar" t={14} /></button>
           </div>
         )}
         <button className="btn btn-lleno ancho" onClick={() => setMenu((m) => !m)}>

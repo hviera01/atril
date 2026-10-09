@@ -23,6 +23,9 @@ export function contenidoVersiculos(libros, libro, capitulo, versos, version = V
     tipo: 'versiculo',
     partes: versos.map((x) => ({ n: x.v, t: x.t })),
     referencia: nombreReferencia(libros, libro, capitulo, primero, ultimo),
+    libroNombre: libros[libro - 1].nombre,
+    capitulo,
+    rango: primero === ultimo ? String(primero) : `${primero}-${ultimo}`,
     version,
   };
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Modal, Campo, Segmentos } from './Modal';
+import { Modal, Campo, Segmentos, Interruptor } from './Modal';
 import Icono from './Iconos';
 import { IGLESIA } from '../../compartido/iglesia';
 
@@ -37,15 +37,21 @@ export function Ajustes({ proy, maxLineas, alMaxLineas, version, nueva, avisar, 
       <section className="ajuste">
         <h3>Pantalla de proyección</h3>
         {proy && proy.pantallas.length > 1 ? (
-          <Campo etiqueta="Proyectar en" ayuda="Elige la pantalla donde está conectado el datashow.">
-            <select value={proy.pantallaId} onChange={(e) => window.atril.proyeccion.elegirPantalla(Number(e.target.value))}>
-              {proy.pantallas.map((p) => <option key={p.id} value={p.id}>{p.nombre} · {p.ancho}×{p.alto}</option>)}
-            </select>
-          </Campo>
+          <>
+            <p className="tenue">Marca las pantallas donde se proyecta. Todas muestran lo mismo.</p>
+            <div className="pantallas-ajuste">
+              {proy.pantallas.map((p) => (
+                <Interruptor key={p.id} valor={proy.abierta ? p.activa : p.elegida} alCambiar={(on) => window.atril.proyeccion.activar(p.id, on)} etiqueta={`${p.nombre} · ${p.ancho}×${p.alto}`} />
+              ))}
+            </div>
+            <div className="fila-botones">
+              <button className="btn" onClick={() => window.atril.proyeccion.identificar()}>Identificar pantallas</button>
+            </div>
+          </>
         ) : (
-          <p className="tenue">Solo hay una pantalla conectada. La proyección se abre en una ventana; al conectar el datashow se podrá enviar a esa pantalla.</p>
+          <p className="tenue">Solo hay una pantalla conectada. La proyección se abre en una ventana; al conectar el datashow o una TV se podrá enviar ahí.</p>
         )}
-        {proy && proy.abierta && <button className="btn" onClick={() => window.atril.proyeccion.pantallaCompleta()}>{proy.pantallaCompleta ? 'Salir de pantalla completa' : 'Pantalla completa'}</button>}
+        {proy && proy.abierta && proy.enVentana && <button className="btn" onClick={() => window.atril.proyeccion.pantallaCompleta()}>{proy.pantallaCompleta ? 'Salir de pantalla completa' : 'Pantalla completa'}</button>}
       </section>
 
       <section className="ajuste">

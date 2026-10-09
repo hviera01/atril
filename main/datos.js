@@ -1,7 +1,7 @@
 const { DatabaseSync } = require('node:sqlite');
 const fs = require('node:fs');
 const path = require('node:path');
-const { LIBROS, normalizar } = require('./libros');
+const { LIBROS, normalizar, compacto } = require('./libros');
 const { interpretarReferencia } = require('./referencias');
 
 const MAX_RESULTADOS = 80;
@@ -46,6 +46,8 @@ class Datos {
         valor TEXT NOT NULL
       );
     `);
+    try { this.db.exec("ALTER TABLE servicios ADD COLUMN fecha TEXT NOT NULL DEFAULT ''"); } catch {}
+    this.db.exec("UPDATE servicios SET fecha = date(creado / 1000, 'unixepoch', 'localtime') WHERE fecha = ''");
     this.sembrarBiblia(archivoBiblia);
   }
 
@@ -95,7 +97,8 @@ class Datos {
         }
       }
     }
-    if (!salida.referencia && !(ref && ref.capitulo)) salida.palabras = this.buscarPalabras(q);
+    const nombreExacto = !!ref && !ref.capitulo && LIBROS.some((l) => l.clave === compacto(q));
+    if (!salida.referencia && !(ref && ref.capitulo) && !nombreExacto) salida.palabras = this.buscarPalabras(q);
     salida.canciones = this.listarCanciones(q).slice(0, 12);
     return salida;
   }
@@ -133,25 +136,29 @@ class Datos {
   }
 
   listarServicios() {
-    return this.db.prepare('SELECT id, nombre, creado, actualizado FROM servicios ORDER BY actualizado DESC').all();
+    return this.db.prepare(`
+      SELECT s.id, s.nombre, s.fecha, s.creado, s.actualizado,
+        (SELECT COUNT(*) FROM elementos e WHERE e.servicio_id = s.id AND json_extract(e.datos, '$.tipo') != 'seccion') AS cantidad
+      FROM servicios s ORDER BY s.fecha DESC, s.creado DESC`).all();
   }
 
-  crearServicio(nombre) {
+  crearServicio(nombre, fecha) {
     const ahora = Date.now();
-    const r = this.db.prepare('INSERT INTO servicios (nombre, creado, actualizado) VALUES (?, ?, ?)').run(nombre, ahora, ahora);
+    const dia = fecha || new Date().toLocaleDateString('sv-SE');
+    const r = this.db.prepare('INSERT INTO servicios (nombre, fecha, creado, actualizado) VALUES (?, ?, ?, ?)').run(nombre, dia, ahora, ahora);
     return Number(r.lastInsertRowid);
   }
 
-  renombrarServicio(id, nombre) {
-    this.db.prepare('UPDATE servicios SET nombre = ?, actualizado = ? WHERE id = ?').run(nombre, Date.now(), id);
+  actualizarServicio(id, nombre, fecha) {
+    this.db.prepare('UPDATE servicios SET nombre = ?, fecha = ?, actualizado = ? WHERE id = ?').run(nombre, fecha, Date.now(), id);
   }
 
   borrarServicio(id) {
     this.db.prepare('DELETE FROM servicios WHERE id = ?').run(id);
   }
 
-  duplicarServicio(id, nombre) {
-    const nuevo = this.crearServicio(nombre);
+  duplicarServicio(id, nombre, fecha) {
+    const nuevo = this.crearServicio(nombre, fecha);
     this.guardarElementos(nuevo, this.elementos(id));
     return nuevo;
   }
@@ -190,7 +197,7 @@ class Datos {
       version: 1,
       fecha: new Date().toISOString(),
       canciones: this.db.prepare('SELECT titulo, autor, letra FROM canciones ORDER BY titulo').all(),
-      servicios: this.listarServicios().map((s) => ({ nombre: s.nombre, elementos: this.elementos(s.id) })),
+      servicios: this.listarServicios().map((s) => ({ nombre: s.nombre, fecha: s.fecha, elementos: this.elementos(s.id) })),
       ajustes: this.db.prepare('SELECT clave, valor FROM ajustes').all().filter((a) => ['temas', 'temaActivo'].includes(a.clave)),
     };
   }
@@ -206,7 +213,7 @@ class Datos {
     }
     let servicios = 0;
     for (const s of respaldo.servicios || []) {
-      const id = this.crearServicio(s.nombre);
+      const id = this.crearServicio(s.nombre, s.fecha);
       this.guardarElementos(id, s.elementos || []);
       servicios++;
     }

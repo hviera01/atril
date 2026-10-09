@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Icono from './Iconos';
 
-export function PanelCanciones({ version, focoId, alVistaPrevia, alProyectar, alAgregar, alEditar, alNueva, alImportar }) {
+export function PanelCanciones({ destinoTitulo, version, focoId, alVistaPrevia, alProyectar, alAgregar, alEditar, alNueva, alImportar }) {
   const [q, setQ] = useState('');
   const [lista, setLista] = useState([]);
 
@@ -17,6 +17,7 @@ export function PanelCanciones({ version, focoId, alVistaPrevia, alProyectar, al
   return (
     <div className="biblio">
       <div className="biblio-cab">
+        {destinoTitulo && <p className="destino-nota">Se agregarán en <b>{destinoTitulo}</b></p>}
         <div className="filtro">
           <Icono n="busqueda" t={16} />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filtrar canciones" />
@@ -51,7 +52,7 @@ export function PanelCanciones({ version, focoId, alVistaPrevia, alProyectar, al
   );
 }
 
-export function PanelMedios({ version, focoId, alVistaPrevia, alAgregar, alCambio }) {
+export function PanelMedios({ destinoTitulo, version, focoId, alVistaPrevia, alAgregar, alCambio }) {
   const [medios, setMedios] = useState([]);
 
   const cargar = async () => setMedios(await window.atril.medios.listar());
@@ -70,6 +71,7 @@ export function PanelMedios({ version, focoId, alVistaPrevia, alAgregar, alCambi
   return (
     <div className="biblio">
       <div className="biblio-cab">
+        {destinoTitulo && <p className="destino-nota">Se agregarán en <b>{destinoTitulo}</b></p>}
         <div className="biblio-botones">
           <button className="btn btn-lleno" onClick={importar}><Icono n="subir" t={16} /> Agregar archivos</button>
         </div>
@@ -88,6 +90,43 @@ export function PanelMedios({ version, focoId, alVistaPrevia, alAgregar, alCambi
             </span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+const normalizar = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+export function PanelBiblia({ libros, actual, alElegir }) {
+  const [filtro, setFiltro] = useState('');
+  const visibles = useMemo(() => {
+    const f = normalizar(filtro.trim());
+    return libros.filter((l) => !f || normalizar(l.nombre).includes(f));
+  }, [libros, filtro]);
+
+  const grupo = (titulo, lista) => lista.length > 0 && (
+    <>
+      <div className="sel-grupo">{titulo}</div>
+      {lista.map((l) => (
+        <button key={l.id} className={`sel-libro${actual === l.id ? ' on' : ''}`} onClick={() => alElegir(l)}>
+          <span>{l.nombre}</span><small>{l.capitulos} {l.capitulos === 1 ? 'cap.' : 'caps.'}</small>
+        </button>
+      ))}
+    </>
+  );
+
+  return (
+    <div className="biblio">
+      <div className="biblio-cab">
+        <div className="filtro">
+          <Icono n="busqueda" t={16} />
+          <input value={filtro} onChange={(e) => setFiltro(e.target.value)} placeholder="Filtrar libros" />
+        </div>
+        <p className="tenue chico-texto">Elige un libro, luego el capítulo y toca el versículo para proyectarlo.</p>
+      </div>
+      <div className="biblio-lista">
+        {grupo('Antiguo Testamento', visibles.filter((l) => l.testamento === 'AT'))}
+        {grupo('Nuevo Testamento', visibles.filter((l) => l.testamento === 'NT'))}
       </div>
     </div>
   );

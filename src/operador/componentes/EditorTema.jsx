@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Campo, Segmentos, Interruptor } from './Modal';
 import Icono from './Iconos';
 import Escenario from '../../compartido/Escenario';
-import { FUENTES, TEMAS_INTEGRADOS, completarTema, temaNuevoDesde } from '../../compartido/temas';
+import { FUENTES, ESTILOS, TEMAS_INTEGRADOS, completarTema, temaNuevoDesde } from '../../compartido/temas';
 
 const MUESTRA = {
   modo: 'contenido',
@@ -10,6 +10,9 @@ const MUESTRA = {
     tipo: 'versiculo',
     partes: [{ n: 16, t: 'Porque de tal manera amó Dios al mundo, que ha dado a su Hijo unigénito, para que todo aquel que en él cree, no se pierda, mas tenga vida eterna.' }],
     referencia: 'Juan 3:16',
+    libroNombre: 'Juan',
+    capitulo: 3,
+    rango: '16',
     version: 'RVR1960',
   },
 };
@@ -158,6 +161,11 @@ export default function EditorTema({ personalizados, temaId, alGuardar, alElegir
           <Rango etiqueta="Tamaño de la cita" valor={ref.tam} min={28} max={80} alCambiar={(v) => cambiar('referencia', 'tam', v)} sufijo=" px" />
 
           <h3>Composición</h3>
+          <Campo etiqueta="Estilo del escenario" ayuda={editando.estilo !== 'plano' ? 'Este estilo dibuja su propio arte; los colores de fondo ajustan la base.' : null}>
+            <select value={editando.estilo} onChange={(e) => cambiar(null, 'estilo', e.target.value)}>
+              {ESTILOS.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+            </select>
+          </Campo>
           <Campo etiqueta="Adorno">
             <select value={editando.adorno} onChange={(e) => cambiar(null, 'adorno', e.target.value)}>
               <option value="ninguno">Ninguno</option>

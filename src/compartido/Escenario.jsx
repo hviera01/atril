@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { fuenteCss, completarTema } from './temas';
 import { IGLESIA } from './iglesia';
 import logoRedondo from './logo-redondo.png';
+import EstiloFondo from './Estilos';
 import './escenario.css';
 
 const ANCHO = 1920;
@@ -20,6 +21,7 @@ function estiloTexto(t) {
     textTransform: t.texto.mayus ? 'uppercase' : 'none',
     fontStyle: t.texto.cursiva ? 'italic' : 'normal',
     lineHeight: t.texto.interlineado,
+    fontVariantNumeric: 'lining-nums',
     textShadow: s > 0 ? `0 4px ${Math.round(28 * s)}px rgba(0,0,0,${0.55 * s}), 0 2px 5px rgba(0,0,0,${0.45 * s})` : 'none',
   };
 }
@@ -34,12 +36,13 @@ function estiloReferencia(t) {
     letterSpacing: `${r.espaciado}em`,
     textTransform: r.mayus ? 'uppercase' : 'none',
     textAlign: t.texto.alinear,
+    fontVariantNumeric: 'lining-nums',
   };
 }
 
 const MIN_SIN_CORTES = 70;
 
-function TextoAjustado({ t, clave, sinCortes, children }) {
+function TextoAjustado({ t, clave, sinCortes, columnas, capitular, children }) {
   const ref = useRef(null);
   const ajustar = useCallback(() => {
     const el = ref.current;
@@ -77,7 +80,7 @@ function TextoAjustado({ t, clave, sinCortes, children }) {
     return () => { vivo = false; };
   }, [t.texto.fuente, t.texto.peso, ajustar]);
 
-  return <div ref={ref} className="esc-texto" style={estiloTexto(t)}>{children}</div>;
+  return <div ref={ref} className={`esc-texto${columnas ? ' columnas' : ''}${capitular ? ' capitular' : ''}`} style={{ ...estiloTexto(t), '--cap': t.referencia.color }}>{children}</div>;
 }
 
 function Adorno({ t }) {
@@ -121,7 +124,72 @@ function Cuenta({ c, t }) {
   );
 }
 
+function Ornamento({ color }) {
+  return (
+    <svg className="lib-ornamento" width="260" height="26" viewBox="0 0 260 26" aria-hidden="true">
+      <path d="M0 13H108M152 13H260" stroke={color} strokeWidth="2" opacity=".7" />
+      <rect x="121" y="4" width="18" height="18" transform="rotate(45 130 13)" fill={color} />
+    </svg>
+  );
+}
+
+function ContenidoLibro({ c, t }) {
+  const clave = JSON.stringify(c);
+  const color = t.referencia.color;
+  const refEstilo = estiloReferencia(t);
+  let cuerpo;
+  let largo = false;
+  let izquierda = null;
+  let cabeceraDer = IGLESIA.nombre;
+  if (c.tipo === 'versiculo') {
+    cuerpo = c.partes.length > 1
+      ? c.partes.map((p, i) => <span key={i}><sup className="esc-num" style={{ color }}>{p.n}</sup>{p.t}{' '}</span>)
+      : c.partes[0].t;
+    largo = c.partes.reduce((a, p) => a + p.t.length, 0) > 250;
+    cabeceraDer = `Santa Biblia · ${c.version || ''}`;
+    izquierda = (
+      <>
+        <div className="lib-libro" style={refEstilo}>{c.libroNombre}</div>
+        <div className="lib-capitulo" style={{ fontFamily: fuenteCss(t.texto.fuente), color }}>{c.capitulo}</div>
+        <Ornamento color={color} />
+        <div className="lib-pie" style={{ ...refEstilo, fontSize: t.referencia.tam * 0.8 }}>{c.rango.includes('-') ? 'Versículos' : 'Versículo'} {c.rango}</div>
+      </>
+    );
+  } else {
+    const lineas = c.lineas;
+    cuerpo = lineas.map((l, i) => <div key={i} className="esc-linea-letra">{l}</div>);
+    largo = lineas.length > 6 || lineas.join('').length > 260;
+    const titulo = c.titulo || '';
+    izquierda = (
+      <>
+        {titulo ? <div className="lib-titulo" style={{ fontFamily: fuenteCss(t.texto.fuente), color: t.texto.color }}>{titulo}</div> : null}
+        <Ornamento color={color} />
+      </>
+    );
+  }
+  const textoAjustado = (
+    <TextoAjustado t={t} clave={clave} sinCortes={c.tipo === 'letra' && !largo} columnas={largo}>{cuerpo}</TextoAjustado>
+  );
+  return (
+    <>
+      <div className="lib-cab lib-cab-der" style={refEstilo}>{cabeceraDer}</div>
+      {largo ? (
+        <>
+          <div className="lib-cab lib-cab-izq" style={refEstilo}>{c.tipo === 'versiculo' ? `${c.libroNombre} ${c.capitulo}` : c.titulo || IGLESIA.nombre}</div>
+          <div className="lib-doble"><div className="esc-caja col">{textoAjustado}</div></div>
+        </>
+      ) : (
+        <>
+          <div className="lib-izq">{izquierda}</div>
+          <div className="lib-der"><div className="esc-caja">{textoAjustado}</div></div>
+        </>
+      )}
+    </>
+  );
+}
+
 function ContenidoTexto({ c, t }) {
+  if (t.estilo === 'libro') return <ContenidoLibro c={c} t={t} />;
   const clave = JSON.stringify(c);
   const refArriba = t.referencia.posicion === 'arriba';
   let referencia = null;
@@ -142,12 +210,12 @@ function ContenidoTexto({ c, t }) {
     cuerpo = c.lineas.map((l, i) => <div key={i} className="esc-linea-letra">{l}</div>);
   }
   return (
-    <div className="esc-cuerpo" style={{ padding: `${t.margen.y}px ${t.margen.x}px` }}>
+    <div className="esc-cuerpo" style={{ padding: `${t.margen.y}px ${t.margen.x}px ${t.margen.abajo ?? t.margen.y}px` }}>
       <Adorno t={t} />
       {refArriba && referencia}
       {refArriba && linea}
       <div className="esc-caja">
-        <TextoAjustado t={t} clave={clave} sinCortes={c.tipo === 'letra'}>{cuerpo}</TextoAjustado>
+        <TextoAjustado t={t} clave={clave} sinCortes={c.tipo === 'letra'} capitular={!!t.texto.capitular && c.tipo === 'versiculo' && c.partes.length === 1}>{cuerpo}</TextoAjustado>
       </div>
       {!refArriba && linea}
       {!refArriba && referencia}
@@ -232,6 +300,7 @@ export default function Escenario({ frame, tema, estatico = false }) {
     <div className="esc" ref={raiz}>
       <div className="esc-lienzo" style={{ transform: `scale(${escala})` }}>
         <Fondo t={t} estatico={estatico} />
+        <EstiloFondo estilo={t.estilo} t={t} visible={TIPOS_TEXTO.includes(efectivo.tipo)} />
         {capas.map((x) => (
           <div key={x.id} className={`esc-capa${x.sale ? ' sale' : ''}`}>
             <Contenido c={x.c} t={t} />

@@ -1,26 +1,19 @@
 import { useState } from 'react';
-import { Modal, Campo } from './Modal';
+import { Modal, Campo, Interruptor } from './Modal';
+import { hoy } from '../../compartido/fechas';
 
-export function FormPasaje({ alAceptar, alCerrar }) {
-  const [texto, setTexto] = useState('');
-  const [error, setError] = useState('');
-  const [ocupado, setOcupado] = useState(false);
+export const SECCIONES_BASE = ['Bienvenida', 'Alabanza', 'Ofrenda', 'Palabra', 'Cierre'];
 
-  const aceptar = async () => {
-    if (!texto.trim() || ocupado) return;
-    setOcupado(true);
-    const r = await window.atril.buscar(texto);
-    setOcupado(false);
-    if (!r.referencia) { setError('No reconozco ese pasaje. Prueba así: Juan 3:16-18, Salmo 23, 1 Co 13.'); return; }
-    alAceptar(r.referencia);
-  };
-
+export function FormCulto({ inicial, alAceptar, alCerrar }) {
+  const [nombre, setNombre] = useState(inicial ? inicial.nombre : 'Culto');
+  const [fecha, setFecha] = useState(inicial ? inicial.fecha : hoy());
+  const [secciones, setSecciones] = useState(true);
+  const aceptar = () => nombre.trim() && fecha && alAceptar({ nombre: nombre.trim(), fecha, secciones: !inicial && secciones });
   return (
-    <Modal titulo="Agregar pasaje bíblico" ancho={480} alCerrar={alCerrar} pie={(<><span className="relleno" /><button className="btn" onClick={alCerrar}>Cancelar</button><button className="btn btn-lleno" onClick={aceptar}>Agregar</button></>)}>
-      <Campo etiqueta="Pasaje" ayuda="Un versículo, un rango (16-18) o un capítulo completo.">
-        <input autoFocus value={texto} onChange={(e) => { setTexto(e.target.value); setError(''); }} onKeyDown={(e) => e.key === 'Enter' && aceptar()} placeholder="Juan 3:16-18" />
-      </Campo>
-      {error && <p className="error-texto">{error}</p>}
+    <Modal titulo={inicial ? 'Datos del culto' : 'Nuevo culto'} ancho={500} alCerrar={alCerrar} pie={(<><span className="relleno" /><button className="btn" onClick={alCerrar}>Cancelar</button><button className="btn btn-lleno" disabled={!nombre.trim() || !fecha} onClick={aceptar}>{inicial ? 'Guardar' : 'Crear culto'}</button></>)}>
+      <Campo etiqueta="Nombre"><input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && aceptar()} placeholder="Culto dominical, Vigilia, Culto de jóvenes…" /></Campo>
+      <Campo etiqueta="Fecha"><input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} /></Campo>
+      {!inicial && <Interruptor valor={secciones} alCambiar={setSecciones} etiqueta={`Empezar con secciones: ${SECCIONES_BASE.join(', ')}`} />}
     </Modal>
   );
 }

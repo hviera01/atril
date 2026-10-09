@@ -95,10 +95,10 @@ function registrarIpc() {
   });
 
   manejar('servicios:listar', () => datos.listarServicios());
-  manejar('servicios:crear', (nombre) => datos.crearServicio(nombre));
-  manejar('servicios:renombrar', (id, nombre) => datos.renombrarServicio(id, nombre));
+  manejar('servicios:crear', (nombre, fecha) => datos.crearServicio(nombre, fecha));
+  manejar('servicios:actualizar', (id, nombre, fecha) => datos.actualizarServicio(id, nombre, fecha));
   manejar('servicios:borrar', (id) => datos.borrarServicio(id));
-  manejar('servicios:duplicar', (id, nombre) => datos.duplicarServicio(id, nombre));
+  manejar('servicios:duplicar', (id, nombre, fecha) => datos.duplicarServicio(id, nombre, fecha));
   manejar('servicios:elementos', (id) => datos.elementos(id));
   manejar('servicios:guardar', (id, elementos) => datos.guardarElementos(id, elementos));
 
@@ -132,16 +132,12 @@ function registrarIpc() {
   manejar('proyeccion:estado', () => proyeccion.estado());
   manejar('proyeccion:abrir', () => { proyeccion.abrir(); });
   manejar('proyeccion:cerrar', () => { proyeccion.cerrar(); });
-  manejar('proyeccion:elegirPantalla', (id) => {
-    datos.guardarAjuste('pantallaId', id);
-    if (proyeccion.win) proyeccion.moverAExterna();
-    enviarOperador('proyeccion:cambio', proyeccion.estado());
-  });
+  manejar('proyeccion:activar', (id, encendida) => proyeccion.activar(id, encendida));
+  manejar('proyeccion:identificar', () => proyeccion.identificar());
   manejar('proyeccion:pantallaCompleta', () => proyeccion.alternarPantallaCompleta());
-  manejar('proyeccion:moverAExterna', () => proyeccion.moverAExterna());
   ipcMain.on('proyeccion:enviar', (_e, frame) => proyeccion.enviar(frame));
-  ipcMain.on('pantalla:listo', () => proyeccion.reenviar());
-  ipcMain.on('pantalla:alternar', () => proyeccion.alternarPantallaCompleta());
+  ipcMain.on('pantalla:listo', (e) => proyeccion.reenviarA(e.sender));
+  ipcMain.on('pantalla:alternar', (e) => proyeccion.alternarPantallaCompleta(proyeccion.ventanaDe(e.sender)));
 
   ipcMain.on('remoto:publicar', (_e, estado) => remoto && remoto.publicar(estado));
   manejar('remoto:info', async () => {

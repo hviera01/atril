@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Icono from './componentes/Iconos';
 import PanelCulto from './componentes/PanelCulto';
-import { PanelCanciones, PanelMedios } from './componentes/PanelBiblioteca';
+import { PanelCanciones, PanelMedios, PanelBiblia } from './componentes/PanelBiblioteca';
+import SelectorPasaje from './componentes/SelectorPasaje';
+import HistorialCultos from './componentes/HistorialCultos';
 import Mesa from './componentes/Mesa';
 import PanelVivo from './componentes/PanelVivo';
 import EditorCancion from './componentes/EditorCancion';
 import EditorTema from './componentes/EditorTema';
 import { Ajustes, Remoto } from './componentes/Ajustes';
-import { FormPasaje, FormTexto, FormTemporizador, FormNombre, Confirmar } from './componentes/FormulariosCulto';
+import { FormCulto, SECCIONES_BASE, FormTexto, FormTemporizador, FormNombre, Confirmar } from './componentes/FormulariosCulto';
+import { hoy } from '../compartido/fechas';
 import { TEMAS_INTEGRADOS, completarTema } from '../compartido/temas';
 import { IGLESIA } from '../compartido/iglesia';
 import { capituloBiblia, construirDiapositivas, contenidoVersiculos, resumenElemento } from '../compartido/diapositivas';
 import logoRedondo from '../compartido/logo-redondo.png';
 
 const uid = () => crypto.randomUUID();
-const nombreCultoHoy = () => `Culto ${new Date().toLocaleDateString('es-HN', { day: 'numeric', month: 'short' }).replace('.', '')}`;
 const enCampoDeTexto = (t) => t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
 
 function textoDe(c) {
@@ -52,6 +54,7 @@ export default function App() {
   const [aviso, setAviso] = useState('');
   const [versionDatos, setVersionDatos] = useState(0);
   const [listo, setListo] = useState(false);
+  const [destinoId, setDestinoId] = useState(null);
   const buscador = useRef(null);
   const acc = useRef({});
   const ultimoUso = useRef(null);
@@ -73,6 +76,7 @@ export default function App() {
     setServicioId(id);
     setFocoId(null);
     setFocoTmp(null);
+    setDestinoId(null);
     window.atril.guardarAjuste('servicioActivo', id);
   };
 
@@ -91,7 +95,7 @@ export default function App() {
       setTemaId(await window.atril.ajuste('temaActivo', 'madrugada'));
       let lista = await window.atril.servicios.listar();
       if (!lista.length) {
-        await window.atril.servicios.crear(nombreCultoHoy());
+        await window.atril.servicios.crear('Culto', hoy());
         lista = await window.atril.servicios.listar();
       }
       setServicios(lista);
@@ -211,20 +215,30 @@ export default function App() {
     }
   };
 
-  const proyectarVersiculo = async (libro, capitulo, desde, hasta) => {
+  const proyectarVersiculo = async (libro, capitulo, desde, hasta, anclaId = null) => {
     const todos = await capituloBiblia(libro, capitulo);
     const fin = hasta || desde;
     const sel = todos.filter((x) => x.v >= desde && x.v <= fin);
     if (!sel.length) return;
     setContenido(contenidoVersiculos(libros, libro, capitulo, sel));
     setModo('contenido');
-    setVivo({ origen: 'biblia', libro, capitulo, desde: sel[0].v, hasta: sel[sel.length - 1].v });
+    setVivo({ origen: 'biblia', libro, capitulo, desde: sel[0].v, hasta: sel[sel.length - 1].v, anclaId });
   };
 
-  const navegarBiblia = async (dir) => {
-    const base = dir > 0 ? vivo.hasta : vivo.desde;
-    const vec = await versiculoVecino(vivo.libro, vivo.capitulo, base, dir);
-    if (vec) await proyectarVersiculo(vec.libro, vec.capitulo, vec.verso.v);
+  const versiculoActual = () => {
+    if (!vivo) return null;
+    if (vivo.origen === 'biblia') return vivo;
+    if (vivo.elemento.tipo === 'biblia' && contenido && contenido.tipo === 'versiculo') {
+      return { libro: vivo.elemento.libro, capitulo: vivo.elemento.capitulo, desde: contenido.partes[0].n, hasta: contenido.partes[contenido.partes.length - 1].n };
+    }
+    return null;
+  };
+
+  const versoNav = async (dir) => {
+    const v = versiculoActual();
+    if (!v) { if (dir > 0) await irSiguiente(); else await irAnterior(); return; }
+    const vec = await versiculoVecino(v.libro, v.capitulo, dir > 0 ? v.hasta : v.desde, dir);
+    if (vec) await proyectarVersiculo(vec.libro, vec.capitulo, vec.verso.v, null, vivo.origen === 'elemento' ? vivo.elemento.id : vivo.anclaId);
   };
 
   const irAElemento = async (el, ultima) => {
@@ -239,7 +253,7 @@ export default function App() {
       if (focoEl && diapsFoco.length) await proyectarDiap(focoEl, 0, diapsFoco);
       return;
     }
-    if (vivo.origen === 'biblia') { await navegarBiblia(1); return; }
+    if (vivo.origen === 'biblia') { await versoNav(1); return; }
     const diaps = await construirDiapositivas(vivo.elemento, { libros, maxLineas });
     if (vivo.indice + 1 < diaps.length) { await proyectarDiap(vivo.elemento, vivo.indice + 1, diaps); return; }
     const i = elementos.findIndex((e) => e.id === vivo.elemento.id);
@@ -250,7 +264,7 @@ export default function App() {
 
   const irAnterior = async () => {
     if (!vivo) return;
-    if (vivo.origen === 'biblia') { await navegarBiblia(-1); return; }
+    if (vivo.origen === 'biblia') { await versoNav(-1); return; }
     if (vivo.indice > 0) { await proyectarDiap(vivo.elemento, vivo.indice - 1); return; }
     const i = elementos.findIndex((e) => e.id === vivo.elemento.id);
     if (i <= 0) return;
@@ -259,7 +273,8 @@ export default function App() {
   };
 
   const elementoVecino = async (dir) => {
-    const base = vivo && vivo.origen === 'elemento' ? elementos.findIndex((e) => e.id === vivo.elemento.id) : elementos.findIndex((e) => e.id === focoId);
+    const idDe = vivo && vivo.origen === 'elemento' ? vivo.elemento.id : vivo && vivo.anclaId ? vivo.anclaId : focoId;
+    const base = elementos.findIndex((e) => e.id === idDe);
     const lista = dir > 0 ? elementos.slice(base + 1) : elementos.slice(0, Math.max(0, base)).reverse();
     const el = lista.find((e) => e.tipo !== 'seccion');
     if (el) await irAElemento(el, false);
@@ -268,9 +283,22 @@ export default function App() {
   const alternarModo = (m) => setModo((actual) => (actual === m ? 'contenido' : m));
   const limpiar = () => { setContenido(null); setVivo(null); setModo('contenido'); };
 
+  const indiceInsercion = (lista, tipo) => {
+    if (!destinoId || tipo === 'seccion') return lista.length;
+    const i = lista.findIndex((e) => e.id === destinoId && e.tipo === 'seccion');
+    if (i < 0) return lista.length;
+    let j = i + 1;
+    while (j < lista.length && lista[j].tipo !== 'seccion') j++;
+    return j;
+  };
+
   const agregar = (parcial, seleccionar = true) => {
     const el = { id: uid(), ...parcial };
-    setElementos((prev) => [...prev, el]);
+    setElementos((prev) => {
+      const copia = [...prev];
+      copia.splice(indiceInsercion(copia, parcial.tipo), 0, el);
+      return copia;
+    });
     if (seleccionar) { setFocoTmp(null); setFocoId(el.id); setPestana('culto'); }
     avisar('Agregado al culto.');
     return el;
@@ -298,6 +326,7 @@ export default function App() {
   const quitar = (id) => {
     setElementos((prev) => prev.filter((e) => e.id !== id));
     if (focoId === id) setFocoId(null);
+    if (destinoId === id) setDestinoId(null);
   };
 
   const mover = (de, a) => setElementos((prev) => {
@@ -325,14 +354,15 @@ export default function App() {
   const servicioActual = servicios.find((s) => s.id === servicioId);
 
   const accionesCulto = {
-    elegirServicio: (id) => cargarServicio(id),
-    nuevoServicio: () => setModal({ tipo: 'nombre', titulo: 'Nuevo culto', etiqueta: 'Nombre', inicial: nombreCultoHoy(), boton: 'Crear', alAceptar: async (n) => { const id = await window.atril.servicios.crear(n); await recargarServicios(); await cargarServicio(id); setModal(null); } }),
-    renombrarServicio: () => setModal({ tipo: 'nombre', titulo: 'Cambiar nombre', etiqueta: 'Nombre', inicial: servicioActual ? servicioActual.nombre : '', boton: 'Guardar', alAceptar: async (n) => { await window.atril.servicios.renombrar(servicioId, n); await recargarServicios(); setModal(null); } }),
-    duplicarServicio: async () => { const id = await window.atril.servicios.duplicar(servicioId, `${servicioActual.nombre} (copia)`); await recargarServicios(); await cargarServicio(id); avisar('Culto duplicado.'); },
+    nuevoServicio: () => setModal({ tipo: 'culto' }),
+    editarServicio: () => setModal({ tipo: 'culto', inicial: { nombre: servicioActual ? servicioActual.nombre : '', fecha: servicioActual ? servicioActual.fecha : hoy() } }),
+    historial: () => setModal({ tipo: 'historial' }),
+    fijarDestino: setDestinoId,
+    duplicarServicio: async () => { const id = await window.atril.servicios.duplicar(servicioId, servicioActual.nombre, hoy()); await recargarServicios(); await cargarServicio(id); avisar('Culto duplicado para hoy.'); },
     borrarServicio: () => setModal({ tipo: 'confirmar', titulo: 'Eliminar culto', mensaje: `Se eliminará «${servicioActual ? servicioActual.nombre : ''}» con todo su orden. Las canciones no se borran.`, alAceptar: async () => {
       await window.atril.servicios.borrar(servicioId);
       let lista = await recargarServicios();
-      if (!lista.length) { await window.atril.servicios.crear(nombreCultoHoy()); lista = await recargarServicios(); }
+      if (!lista.length) { await window.atril.servicios.crear('Culto', hoy()); lista = await recargarServicios(); }
       await cargarServicio(lista[0].id);
       setModal(null);
     } }),
@@ -369,6 +399,12 @@ export default function App() {
     elegirTema: (id) => { setTemaId(id); window.atril.guardarAjuste('temaActivo', id); },
     abrirProyeccion: () => window.atril.proyeccion.abrir(),
     cerrarProyeccion: () => window.atril.proyeccion.cerrar(),
+    activarPantalla: (id, encendida) => window.atril.proyeccion.activar(id, encendida),
+    identificar: () => window.atril.proyeccion.identificar(),
+    versoAnterior: () => versoNav(-1),
+    versoSiguiente: () => versoNav(1),
+    elementoAnterior: () => elementoVecino(-1),
+    elementoSiguiente: () => elementoVecino(1),
   };
 
   const enterBuscador = async () => {
@@ -387,6 +423,10 @@ export default function App() {
       else if (c.tipo === 'negro') alternarModo('negro');
       else if (c.tipo === 'logo') alternarModo('logo');
       else if (c.tipo === 'limpiar') limpiar();
+      else if (c.tipo === 'versoSig') await versoNav(1);
+      else if (c.tipo === 'versoAnt') await versoNav(-1);
+      else if (c.tipo === 'elementoSig') await elementoVecino(1);
+      else if (c.tipo === 'elementoAnt') await elementoVecino(-1);
       else if (c.tipo === 'elemento') { const el = elementos.find((e) => e.id === c.id); if (el) await irAElemento(el, false); }
       else if (c.tipo === 'versiculo') await proyectarVersiculo(c.libro, c.capitulo, c.versiculo);
       else if (c.tipo === 'cancion') {
@@ -409,8 +449,10 @@ export default function App() {
       }
       if (enCampo || e.ctrlKey || e.metaKey || e.altKey) return;
       const k = e.key;
-      if (k === 'ArrowRight' || k === ' ' || k === 'ArrowDown') { e.preventDefault(); irSiguiente(); }
-      else if (k === 'ArrowLeft' || k === 'ArrowUp') { e.preventDefault(); irAnterior(); }
+      if (k === 'ArrowRight' || k === ' ') { e.preventDefault(); irSiguiente(); }
+      else if (k === 'ArrowLeft') { e.preventDefault(); irAnterior(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); versoNav(1); }
+      else if (k === 'ArrowUp') { e.preventDefault(); versoNav(-1); }
       else if (k === 'PageDown') { e.preventDefault(); elementoVecino(1); }
       else if (k === 'PageUp') { e.preventDefault(); elementoVecino(-1); }
       else if (k.toLowerCase() === 'b') alternarModo('negro');
@@ -440,6 +482,48 @@ export default function App() {
     setVersionDatos((v) => v + 1);
     setModal(null);
     avisar('Canción eliminada.');
+  };
+
+  const libroActual = res ? (res.referencia ? res.referencia.libro : res.libros && res.libros.length === 1 ? res.libros[0] : null) : null;
+  const destinoEl = elementos.find((e) => e.id === destinoId && e.tipo === 'seccion') || null;
+
+  const guardarCulto = async ({ nombre, fecha, secciones }) => {
+    if (modal && modal.inicial) {
+      await window.atril.servicios.actualizar(servicioId, nombre, fecha);
+      await recargarServicios();
+    } else {
+      const id = await window.atril.servicios.crear(nombre, fecha);
+      if (secciones) await window.atril.servicios.guardar(id, SECCIONES_BASE.map((t) => ({ id: uid(), tipo: 'seccion', titulo: t })));
+      await recargarServicios();
+      await cargarServicio(id);
+      setPestana('culto');
+    }
+    setModal(null);
+  };
+
+  const abrirCulto = async (id) => {
+    await cargarServicio(id);
+    setPestana('culto');
+    setModal(null);
+  };
+
+  const usarComoBase = async (s) => {
+    const id = await window.atril.servicios.duplicar(s.id, s.nombre, hoy());
+    await recargarServicios();
+    await cargarServicio(id);
+    setPestana('culto');
+    setModal(null);
+    avisar(`Culto nuevo para hoy con el orden de «${s.nombre}».`);
+  };
+
+  const borrarDelHistorial = async (s) => {
+    await window.atril.servicios.borrar(s.id);
+    let lista = await recargarServicios();
+    if (!lista.length) {
+      await window.atril.servicios.crear('Culto', hoy());
+      lista = await recargarServicios();
+    }
+    if (s.id === servicioId) await cargarServicio(lista[0].id);
   };
 
   const cambiarMaxLineas = (n) => { setMaxLineas(n); window.atril.guardarAjuste('maxLineas', n); };
@@ -478,18 +562,19 @@ export default function App() {
       <div className="cuerpo">
         <aside className="izq">
           <div className="pestanas">
-            {[['culto', 'Culto', 'culto'], ['canciones', 'Canciones', 'cancion'], ['medios', 'Imágenes', 'imagen']].map(([id, t, ic]) => (
+            {[['culto', 'Culto', 'culto'], ['biblia', 'Biblia', 'biblia'], ['canciones', 'Canciones', 'cancion'], ['medios', 'Imágenes', 'imagen']].map(([id, t, ic]) => (
               <button key={id} className={pestana === id ? 'on' : ''} onClick={() => setPestana(id)}><Icono n={ic} t={16} />{t}</button>
             ))}
           </div>
           {pestana === 'culto' && (
-            <PanelCulto servicios={servicios} servicioId={servicioId} elementos={elementos} foco={focoEl} vivoId={vivo && vivo.origen === 'elemento' ? vivo.elemento.id : null} libros={libros} titulos={{}} acciones={accionesCulto} />
+            <PanelCulto servicios={servicios} servicioId={servicioId} elementos={elementos} foco={focoEl} vivoId={vivo && vivo.origen === 'elemento' ? vivo.elemento.id : null} libros={libros} titulos={{}} destino={destinoEl} acciones={accionesCulto} />
           )}
+          {pestana === 'biblia' && <PanelBiblia libros={libros} actual={libroActual} alElegir={(l) => setConsulta(l.nombre)} />}
           {pestana === 'canciones' && (
-            <PanelCanciones version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaCancion} alProyectar={proyectarCancion} alAgregar={agregarCancion} alEditar={(id) => setModal({ tipo: 'cancion', id })} alNueva={() => setModal({ tipo: 'cancion', id: null })} alImportar={async () => { const n = await window.atril.canciones.importar(); if (n) { setVersionDatos((v) => v + 1); avisar(`${n} ${n === 1 ? 'canción importada' : 'canciones importadas'}.`); } }} />
+            <PanelCanciones destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaCancion} alProyectar={proyectarCancion} alAgregar={agregarCancion} alEditar={(id) => setModal({ tipo: 'cancion', id })} alNueva={() => setModal({ tipo: 'cancion', id: null })} alImportar={async () => { const n = await window.atril.canciones.importar(); if (n) { setVersionDatos((v) => v + 1); avisar(`${n} ${n === 1 ? 'canción importada' : 'canciones importadas'}.`); } }} />
           )}
           {pestana === 'medios' && (
-            <PanelMedios version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaMedio} alAgregar={(m) => agregar({ tipo: 'imagen', src: m.url, nombre: m.nombre })} alCambio={() => setVersionDatos((v) => v + 1)} />
+            <PanelMedios destinoTitulo={destinoEl ? destinoEl.titulo : null} version={versionDatos} focoId={focoTmp ? focoTmp.id : null} alVistaPrevia={vistaPreviaMedio} alAgregar={(m) => agregar({ tipo: 'imagen', src: m.url, nombre: m.nombre })} alCambio={() => setVersionDatos((v) => v + 1)} />
           )}
         </aside>
 
@@ -498,11 +583,13 @@ export default function App() {
         </main>
 
         <aside className="der">
-          <PanelVivo modo={modo} contenido={contenido} tema={tema} vivo={vivo} siguiente={siguiente} temas={todosTemas} temaId={tema.id} proy={proy} acciones={accionesVivo} />
+          <PanelVivo modo={modo} contenido={contenido} tema={tema} vivo={vivo} siguiente={siguiente} temas={todosTemas} temaId={tema.id} proy={proy} esVerso={!!versiculoActual()} acciones={accionesVivo} />
         </aside>
       </div>
 
-      {modal && modal.tipo === 'pasaje' && <FormPasaje alCerrar={() => setModal(null)} alAceptar={(r) => { agregarPasaje(r.libro, r.capitulo, r.desde, r.hasta); setModal(null); }} />}
+      {modal && modal.tipo === 'pasaje' && <SelectorPasaje libros={libros} alCerrar={() => setModal(null)} alAceptar={(r) => { agregarPasaje(r.libro, r.capitulo, r.desde, r.hasta); setModal(null); }} />}
+      {modal && modal.tipo === 'culto' && <FormCulto inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={guardarCulto} />}
+      {modal && modal.tipo === 'historial' && <HistorialCultos servicios={servicios} servicioId={servicioId} alAbrir={abrirCulto} alUsarComoBase={usarComoBase} alBorrar={borrarDelHistorial} alNuevo={() => setModal({ tipo: 'culto' })} alCerrar={() => setModal(null)} />}
       {modal && modal.tipo === 'texto' && <FormTexto inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={(d) => { if (modal.inicial) actualizarElemento(modal.inicial.id, d); else agregar({ tipo: 'texto', ...d }); setModal(null); }} />}
       {modal && modal.tipo === 'temporizador' && <FormTemporizador inicial={modal.inicial} alCerrar={() => setModal(null)} alAceptar={(d) => { if (modal.inicial) actualizarElemento(modal.inicial.id, d); else agregar({ tipo: 'temporizador', ...d }); setModal(null); }} />}
       {modal && modal.tipo === 'nombre' && <FormNombre titulo={modal.titulo} etiqueta={modal.etiqueta} inicial={modal.inicial} boton={modal.boton} alCerrar={() => setModal(null)} alAceptar={modal.alAceptar} />}

@@ -1,6 +1,6 @@
 {
   "name": "atril",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Proyección de versículos, canciones y anuncios para la iglesia",
   "main": "main/main.js",
   "private": true,
